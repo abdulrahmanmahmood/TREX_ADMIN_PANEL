@@ -14,12 +14,8 @@ import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 
 const CREATE_CHAPTER = gql`
-  mutation CreateChapter($chapterInput: ChapterInput!) {
-    createChapter(chapterInput: $chapterInput) {
-      id
-      nameAr
-      nameEn
-    }
+  mutation CreateChapter($createChapterInput: CreateChapterInput!) {
+    createChapter(createChapterInput: $createChapterInput)
   }
 `;
 
@@ -50,7 +46,7 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createChapter({ chapterInput: formData });
+    createChapter({ variables: { createChapterInput: formData } });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +60,7 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="mb-4 ">
+        <Button className="mb-4">
           <Plus className="w-4 h-4 mr-2" />
           Add New Chapter
         </Button>

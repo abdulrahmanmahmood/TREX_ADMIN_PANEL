@@ -30,10 +30,13 @@ const removeTypenameLink = new ApolloLink((operation, forward) => {
 });
 
 const authLink = setContext((_, { headers }) => {
+  const token = getCookie("token");
   return {
     headers: {
       accept: "*/*",
       "content-type": "application/json",
+      ...headers,
+      authorization: token ? `ADMIN ${token}` : "",
     },
   };
 });

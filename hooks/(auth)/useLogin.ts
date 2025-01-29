@@ -15,7 +15,7 @@ type LoginFormInputs = {
 // GraphQL mutation
 const AUTHENTICATE = gql`
   mutation Authenticate($email: String!, $password: String!) {
-    authenticate(authenticateInput: { email: $email, password: $password })
+    authenticate(authenticate: { email: $email, password: $password })
   }
 `;
 

@@ -13,10 +13,10 @@ interface QueryConfig<TData, TVariables> {
     skip?: boolean;
     pollInterval?: number;
     fetchPolicy?:
-      | "cache-first"
-      | "network-only"
-      | "cache-and-network"
-      | "no-cache";
+    | "cache-first"
+    | "network-only"
+    | "cache-and-network"
+    | "no-cache";
     context?: Record<string, any>;
   };
 }
@@ -36,13 +36,18 @@ export const useGenericQuery = <
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Get the token for each query
-
+  const token = getCookie("token");
+  console.log("Token:", token);
+  const headers = {
+    ...(options.context?.headers || {}),
+    Authorization: token ? `Bearer ${token}` : "",
+  };
   // Prepare the context with headers
   const context = {
     ...options.context,
     headers: {
       ...options.context?.headers,
-      // authorization: token ? `Bearer ${token}` : "",
+      authorization: `Bearer ${token}`
     },
   };
 

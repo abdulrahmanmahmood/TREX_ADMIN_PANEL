@@ -1,8 +1,24 @@
-import { ApolloClient, InMemoryCache } from "@apollo/client";
+// apolloClient.ts
+import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
+import { getCookie } from 'cookies-next';
 
-const client = new ApolloClient({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL,
-  cache: new InMemoryCache(),
+const httpLink = createHttpLink({
+  uri: 'YOUR_GRAPHQL_ENDPOINT',
 });
 
-export default client;
+const authLink = setContext((_, { headers }) => {
+  const token = getCookie('token');
+  
+  return {
+    headers: {
+      ...headers,
+      Authorization: token ? `Bearer ${token}` : "",
+    }
+  };
+});
+
+export const client = new ApolloClient({
+  link: authLink.concat(httpLink),
+  cache: new InMemoryCache(),
+});

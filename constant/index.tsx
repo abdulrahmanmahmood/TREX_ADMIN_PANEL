@@ -24,6 +24,12 @@ export const menuItems: menuItem[] = [
     name: "Chapters",
     icon: <HomeIcon />,
     id: 3,
-    url: "/chapters", 
+    url: "/chapters",
+  },
+  {
+    name: "Products",
+    icon: <HomeIcon />,
+    id: 5,
+    url: "/products",
   },
 ];
