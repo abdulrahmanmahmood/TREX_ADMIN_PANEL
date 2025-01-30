@@ -30,7 +30,7 @@ const DELETE_CHAPTER = gql`
 `;
 
 type Chapter = {
-  id: string;
+  _id: string;
   nameAr: string;
   nameEn: string;
 };
@@ -63,14 +63,14 @@ const Page = () => {
     },
   });
   const handleDelete = (chapter: Chapter) => {
-    deleteChapter({ id: chapter.id });
+    deleteChapter({ id: chapter._id });
   };
 
   const columns: {
     header: string;
     key: keyof Chapter;
   }[] = [
-    { header: "ID", key: "id" },
+    { header: "ID", key: "_id" },
     { header: "Arabic Name", key: "nameAr" },
     { header: "English Name", key: "nameEn" },
   ];
@@ -78,7 +78,8 @@ const Page = () => {
   const actions = [
     {
       label: "Delete Chapter",
-      onClick: handleDelete,
+      onClick: (item: { id: string | number }) =>
+        handleDelete(item as unknown as Chapter),
       icon: <Eye className="w-4 h-4" />,
       className: "text-red-500",
     },
@@ -87,6 +88,7 @@ const Page = () => {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
+  // console.log("data?.getChapters?", data?.getChapters);
 
   return (
     <div>
@@ -97,7 +99,7 @@ const Page = () => {
         <CreateChapterModal onSuccess={refetch} />
       </div>
       <GenericTable
-        data={data?.getChapters?.chapters || []}
+        data={data?.getChapters?.data || []}
         columns={columns}
         actions={actions}
         subtitle={`Total Chapters: ${

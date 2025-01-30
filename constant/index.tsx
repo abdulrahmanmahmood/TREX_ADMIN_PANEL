@@ -32,4 +32,22 @@ export const menuItems: menuItem[] = [
     id: 5,
     url: "/products",
   },
+  {
+    name: "Measurments",
+    icon: <HomeIcon />,
+    id: 6,
+    url: "/measurments",
+  },
+  {
+    name: "Agreements",
+    icon: <HomeIcon />,
+    id: 7,
+    url: "/agreement",
+  },
+  {
+    name: "countries",
+    icon: <HomeIcon />,
+    id: 8,
+    url: "/country",
+  },
 ];

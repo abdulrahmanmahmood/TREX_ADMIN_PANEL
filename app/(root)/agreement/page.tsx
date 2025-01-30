@@ -6,38 +6,49 @@ import { Eye } from "lucide-react";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
-import CreateMeasurementModal from "@/components/Measurements/CreateMeasurementModal";
-const GET_MEASUREMENTS = gql`
-  query GetMeasurements($page: Int!) {
-    measurements(pageable: { page: $page }) {
-      totalSize
-      totalPages
-      pageSize
-      pageNumber
+import CreateAgreementModal from "@/components/Agreements/CreateAgreementModal";
+import toast, { Toaster } from "react-hot-toast";
+
+const GET_AGREEMENTS = gql`
+  query GetAgreements($page: Int!) {
+    AgreementList(pageable: { page: $page }) {
       data {
         _id
-        unitName
+        name
         note
+        reducedDutyRate
         createdAt
         updatedAt
+        countryId {
+          _id
+          nameEn
+          nameAr
+          code
+        }
         createdBy {
+          _id
           firstName
           lastName
           email
         }
         updatedBy {
+          _id
           firstName
           lastName
           email
         }
       }
+      totalSize
+      totalPages
+      pageNumber
+      pageSize
     }
   }
 `;
 
-const DELETE_MEASUREMENT = gql`
-  mutation DeleteMeasurement($id: String!) {
-    deleteMeasurement(id: $id)
+const DELETE_AGREEMENT = gql`
+  mutation DeleteAgreement($id: String!) {
+    deleteAgreement(id: $id)
   }
 `;
 
@@ -48,12 +59,21 @@ type User = {
   email: string;
 };
 
-type MeasurementFromAPI = {
+type Country = {
   _id: string;
-  unitName: string;
+  nameEn: string;
+  nameAr: string;
+  code: string;
+};
+
+type AgreementFromAPI = {
+  _id: string;
+  name: string;
   note: string;
+  reducedDutyRate: number;
   createdAt: string;
   updatedAt: string;
+  countryId: Country;
   createdBy: User;
   updatedBy: User;
   deletedBy?: User;
@@ -61,14 +81,14 @@ type MeasurementFromAPI = {
 };
 
 // Extend the API type to include the required 'id' field for GenericTable
-type Measurement = MeasurementFromAPI & { id: string };
+type Agreement = AgreementFromAPI & { id: string };
 
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
 
   const { data, loading, error, refetch } = useGenericQuery({
-    query: GET_MEASUREMENTS,
+    query: GET_AGREEMENTS,
     variables: {
       page: currentPage,
       size: pageSize,
@@ -82,23 +102,26 @@ const Page = () => {
     },
   });
 
-  const { execute: deleteMeasurement } = useGenericMutation({
-    mutation: DELETE_MEASUREMENT,
+  const { execute: deleteAgreement } = useGenericMutation({
+    mutation: DELETE_AGREEMENT,
     onSuccess: () => {
       refetch();
     },
     onError: (error) => {
-      console.error("Error deleting measurement:", error);
+      console.error("Error deleting agreement:", error);
+      toast.error(`Error deleting agreement: ${error.message}`, {
+        duration: 5000,
+      });
     },
   });
 
-  const handleDelete = (measurement: Measurement) => {
-    deleteMeasurement({ id: measurement._id });
+  const handleDelete = (agreement: Agreement) => {
+    deleteAgreement({ id: agreement._id });
   };
 
   // Transform the API data to include the required 'id' field
-  const transformedData: Measurement[] = (data?.measurements?.data || []).map(
-    (item: MeasurementFromAPI) => ({
+  const transformedData: Agreement[] = (data?.AgreementList?.data || []).map(
+    (item: AgreementFromAPI) => ({
       ...item,
       id: item._id,
     })
@@ -121,12 +144,30 @@ const Page = () => {
 
   const columns: {
     header: string;
-    key: keyof Measurement;
-    render?: (value: unknown, item: Measurement) => React.ReactNode;
+    key: keyof Agreement;
+    render?: (value: unknown, item: Agreement) => React.ReactNode;
   }[] = [
     {
-      header: "Unit Name",
-      key: "unitName",
+      header: "Agreement Name",
+      key: "name",
+    },
+    {
+      header: "Country",
+      key: "countryId",
+      render: (_, item) => (
+        <div>
+          <div>{item.countryId.nameEn}</div>
+          <div className="text-sm text-gray-500">{item.countryId.nameAr}</div>
+          <div className="text-xs text-gray-400">
+            Code: {item.countryId.code}
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Reduced Duty Rate",
+      key: "reducedDutyRate",
+      render: (value) => `${value}%`,
     },
     {
       header: "Note",
@@ -136,22 +177,26 @@ const Page = () => {
     {
       header: "Created By",
       key: "createdBy",
-      render: (_, item) => formatUser(item.createdBy),
-    },
-    {
-      header: "Created At",
-      key: "createdAt",
-      render: (value) => formatDate(value as string),
+      render: (_, item) => (
+        <div>
+          <div>{formatUser(item.createdBy)}</div>
+          <div className="text-xs text-gray-400">
+            {formatDate(item.createdAt)}
+          </div>
+        </div>
+      ),
     },
     {
       header: "Updated By",
       key: "updatedBy",
-      render: (_, item) => formatUser(item.updatedBy),
-    },
-    {
-      header: "Updated At",
-      key: "updatedAt",
-      render: (value) => formatDate(value as string),
+      render: (_, item) => (
+        <div>
+          <div>{formatUser(item.updatedBy)}</div>
+          <div className="text-xs text-gray-400">
+            {formatDate(item.updatedAt)}
+          </div>
+        </div>
+      ),
     },
   ];
 
@@ -172,29 +217,28 @@ const Page = () => {
     <div>
       <div className="flex justify-between items-center mb-3 p-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-          Measurement Units
+          Trade Agreements
         </h1>
-        <CreateMeasurementModal onSuccess={refetch} />
+        <CreateAgreementModal onSuccess={refetch} />
       </div>
       <GenericTable
         data={transformedData}
         columns={columns}
         actions={actions}
-        subtitle={`Total Measurement Units: ${
-          data?.measurements?.totalSize || 0
-        }`}
+        subtitle={`Total Agreements: ${data?.AgreementList?.totalSize || 0}`}
         isLoading={loading}
         error={error || null}
       />
       {!loading && !error && (
         <Pagination
-          currentPage={data?.measurements?.pageNumber}
-          totalPages={data?.measurements?.totalPages || 1}
-          totalItems={data?.measurements?.totalSize || 0}
-          pageSize={data?.measurements?.pageSize}
+          currentPage={data?.AgreementList?.pageNumber}
+          totalPages={data?.AgreementList?.totalPages || 1}
+          totalItems={data?.AgreementList?.totalSize || 0}
+          pageSize={data?.AgreementList?.pageSize}
           onPageChange={handlePageChange}
         />
       )}
+      <Toaster />
     </div>
   );
 };

@@ -14,8 +14,8 @@ import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 
 const CREATE_CHAPTER = gql`
-  mutation CreateChapter($createChapterInput: CreateChapterInput!) {
-    createChapter(createChapterInput: $createChapterInput)
+  mutation CreateChapter {
+    createChapter(createChapterInput: { nameEn: "jlijkok", nameAr: "تخهاعتت" })
   }
 `;
 
@@ -40,13 +40,14 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
       onSuccess?.();
     },
     onError: (error) => {
-      console.error("Error creating chapter:", error);
+      console.log("Error creating chapter:", error);
     },
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createChapter({ variables: { createChapterInput: formData } });
+    // Directly pass the createChapterInput without wrapping in variables
+    createChapter({ createChapterInput: formData });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
