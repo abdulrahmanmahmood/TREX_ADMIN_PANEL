@@ -88,7 +88,7 @@ const Page = () => {
       refetch();
     },
     onError: (error) => {
-      console.error("Error deleting measurement:", error);
+      console.log("Error deleting measurement:", error);
     },
   });
 

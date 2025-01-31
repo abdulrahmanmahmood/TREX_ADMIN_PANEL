@@ -7,6 +7,7 @@ import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import CreateChapterModal from "@/components/chapter/CreateChapterModal";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
+import toast from "react-hot-toast";
 
 const GET_CHAPTERS = gql`
   query GetChapters($page: Int!) {
@@ -25,7 +26,7 @@ const GET_CHAPTERS = gql`
 `;
 
 const DELETE_CHAPTER = gql`
-  mutation DeleteChapter($id: String!) {
+  mutation DeleteChapter($id: ID!) {
     deleteChapter(id: $id)
   }
 `;
@@ -64,7 +65,8 @@ const Page = () => {
       refetch();
     },
     onError: (error) => {
-      console.error("Error deleting chapter:", error);
+      console.log("Error deleting chapter:", error);
+      toast.error(`Error deleting chapter: `);
     },
   });
 

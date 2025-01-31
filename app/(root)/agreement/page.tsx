@@ -108,7 +108,7 @@ const Page = () => {
       refetch();
     },
     onError: (error) => {
-      console.error("Error deleting agreement:", error);
+      console.log("Error deleting agreement:", error);
       toast.error(`Error deleting agreement: ${error.message}`, {
         duration: 5000,
       });

@@ -89,7 +89,7 @@ export default function Page({
         router.push("/partner-registration");
       },
       onError: (error) => {
-        console.error("Error approving registration:", error);
+        console.log("Error approving registration:", error);
       },
     });
 
@@ -101,7 +101,7 @@ export default function Page({
         router.push("/partner-registration");
       },
       onError: (error) => {
-        console.error("Error deleting registration:", error);
+        console.log("Error deleting registration:", error);
       },
     });
 

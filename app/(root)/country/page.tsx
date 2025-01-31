@@ -70,7 +70,7 @@ const Page = () => {
       refetch();
     },
     onError: (error) => {
-      console.error("Error deleting country:", error);
+      console.log("Error deleting country:", error);
     },
   });
 
@@ -139,7 +139,6 @@ const Page = () => {
       <GenericTable
         data={transformedData}
         columns={columns}
-        actions={actions}
         subtitle={`Total Countries: ${data?.countryList?.totalSize || 0}`}
         isLoading={loading}
         error={error || null}

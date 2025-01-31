@@ -15,7 +15,7 @@ import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 
 const CREATE_AGREEMENT = gql`
-  mutation CreateAgreement($createAgreementDTO: CreateAgreementInput!) {
+  mutation CreateAgreement($createAgreementDTO: CreateAgreementDTO!) {
     createAgreement(createAgreementDTO: $createAgreementDTO)
   }
 `;
@@ -84,7 +84,7 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
           Add New Agreement
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Agreement</DialogTitle>
         </DialogHeader>
@@ -96,14 +96,13 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="Enter agreement name"
+              placeholder="Enter name"
               className="w-full"
               required
             />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="reducedDutyRate">Reduced Duty Rate (%)</Label>
+            <Label htmlFor="reducedDutyRate">Reduced Duty Rate</Label>
             <Input
               id="reducedDutyRate"
               name="reducedDutyRate"
@@ -115,7 +114,6 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
               required
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="countryId">Country ID</Label>
             <Input
@@ -128,31 +126,21 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
               required
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="note">Note</Label>
-            <textarea
+            <Input
               id="note"
               name="note"
               value={formData.note}
               onChange={handleInputChange}
               placeholder="Enter note"
               className="w-full"
+              required
             />
           </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create"}
-            </Button>
-          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Agreement"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

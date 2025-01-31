@@ -36,7 +36,7 @@ export default function ChatSection({
         refetchChat();
       },
       onError: (error) => {
-        console.error("Error sending message:", error);
+        console.log("Error sending message:", error);
       },
     });
 

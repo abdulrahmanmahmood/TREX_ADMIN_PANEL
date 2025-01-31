@@ -36,7 +36,19 @@ const GET_PRODUCTS = gql`
 
 const DELETE_PRODUCT = gql`
   mutation DeleteProduct($id: String!) {
-    deleteProduct(id: $id)
+    deleteProduct(id: $id) {
+      _id
+      HSCode
+      nameEn
+      nameAr
+      note
+      defaultDutyRate
+      serviceTax
+      adVAT
+      deletedAt
+      createdAt
+      updatedAt
+    }
   }
 `;
 
@@ -84,7 +96,7 @@ const Page = () => {
       refetch();
     },
     onError: (error) => {
-      console.error("Error deleting product:", error);
+      console.log("Error deleting product:", error);
     },
   });
 

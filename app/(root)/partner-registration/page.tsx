@@ -1,10 +1,12 @@
 "use client";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
+import { useMutation } from "@apollo/client";
 import React, { JSX, useState } from "react";
-import { Eye } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import { gql } from "@apollo/client/core";
+import toast from "react-hot-toast";
 
 type Action<T> = {
   label: string;
@@ -12,7 +14,6 @@ type Action<T> = {
   icon?: JSX.Element;
   className?: string;
 };
-import { useRouter } from "next/navigation";
 
 const GET_REGISTRATIONS = gql`
   query GetAllRegistrations($page: Int!) {
@@ -29,8 +30,21 @@ const GET_REGISTRATIONS = gql`
         companyName
         phone
         type
+        isApproved
       }
     }
+  }
+`;
+
+const APPROVE_REGISTRATION = gql`
+  mutation ApproveRegistration($id: String!) {
+    approveRegistration(id: $id)
+  }
+`;
+
+const DELETE_REGISTRATION = gql`
+  mutation DeleteRegistration($id: String!) {
+    deleteRegistration(id: $id)
   }
 `;
 
@@ -59,7 +73,7 @@ type Registration = {
   crcIssuedAt: string;
   crcExpiresAt: string;
   isApproved: boolean;
-  address?: AddressResponse; // Make address optional
+  address?: AddressResponse;
 };
 
 type RegistrationsResponse = {
@@ -79,31 +93,64 @@ const formatType = (type: string) => {
     .join(" ");
 };
 
-const formatDate = (dateString: string) => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString();
-};
-
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(0);
-  const router = useRouter();
 
-  const { data, loading, error } = useGenericQuery<RegistrationsResponse>({
-    query: GET_REGISTRATIONS,
-    variables: {
-      page: currentPage,
-    },
-    onError: (error) => {
-      console.log("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        graphQLErrors: error,
-      });
+  const { data, loading, error, refetch } =
+    useGenericQuery<RegistrationsResponse>({
+      query: GET_REGISTRATIONS,
+      variables: {
+        page: currentPage,
+      },
+      onError: (error) => {
+        console.log("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          graphQLErrors: error,
+        });
+      },
+    });
+
+  const [approveRegistration] = useMutation(APPROVE_REGISTRATION, {
+    onCompleted: () => {
+      refetch();
     },
   });
 
-  const handleView = (registration: Registration) => {
-    router.push(`/partner-registration/${registration.id}`);
+  const [deleteRegistration] = useMutation(DELETE_REGISTRATION, {
+    onCompleted: () => {
+      refetch();
+    },
+  });
+
+  const handleApprove = async (registration: Registration) => {
+    try {
+      await approveRegistration({
+        variables: { id: registration.id },
+      });
+    } catch (error) {
+      console.log("Error approving registration:", error);
+      toast.error(`Error creating product: ${error}`, {
+        duration: 5000,
+        icon: "❌",
+      });
+    }
+  };
+
+  const handleDelete = async (registration: Registration) => {
+    if (window.confirm("Are you sure you want to delete this registration?")) {
+      try {
+        await deleteRegistration({
+          variables: { id: registration.id },
+        });
+      } catch (error) {
+        console.log("Error deleting registration:", error);
+        toast.error(`Error creating product: ${error}`, {
+          duration: 5000,
+          icon: "❌",
+        });
+      }
+    }
   };
 
   const columns: {
@@ -111,7 +158,6 @@ const Page = () => {
     key: keyof Registration;
     render?: (value: unknown, item: Registration) => JSX.Element;
   }[] = [
-    // { header: "ID", key: "id" },
     {
       header: "Name",
       key: "firstName",
@@ -131,7 +177,6 @@ const Page = () => {
     { header: "Phone", key: "phone" },
     { header: "Company", key: "companyName" },
     { header: "Email", key: "email" },
-
     {
       header: "Status",
       key: "isApproved",
@@ -151,10 +196,16 @@ const Page = () => {
 
   const actions: Action<Registration>[] = [
     {
-      label: "View",
-      onClick: handleView,
-      icon: <Eye className="w-4 h-4" />,
-      className: "text-blue-600 hover:text-blue-800",
+      label: "Approve",
+      onClick: handleApprove,
+      icon: <Check className="w-4 h-4" />,
+      className: "text-green-600 hover:text-green-800",
+    },
+    {
+      label: "Delete",
+      onClick: handleDelete,
+      icon: <Trash2 className="w-4 h-4" />,
+      className: "text-red-600 hover:text-red-800",
     },
   ];
 
