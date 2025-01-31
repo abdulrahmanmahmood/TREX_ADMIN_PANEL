@@ -14,8 +14,8 @@ import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 
 const CREATE_CHAPTER = gql`
-  mutation CreateChapter {
-    createChapter(createChapterInput: { nameEn: "jlijkok", nameAr: "تخهاعتت" })
+  mutation CreateChapter($nameEn: String!, $nameAr: String!) {
+    createChapter(createChapterInput: { nameEn: $nameEn, nameAr: $nameAr })
   }
 `;
 
@@ -40,14 +40,16 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
       onSuccess?.();
     },
     onError: (error) => {
-      console.log("Error creating chapter:", error);
+      console.error("Error creating chapter:", error);
     },
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Directly pass the createChapterInput without wrapping in variables
-    createChapter({ createChapterInput: formData });
+    createChapter({
+      nameEn: formData.nameEn,
+      nameAr: formData.nameAr,
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +63,7 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="mb-4">
+        <Button className="mb-4 ">
           <Plus className="w-4 h-4 mr-2" />
           Add New Chapter
         </Button>
@@ -95,18 +97,9 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
               required
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create"}
-            </Button>
-          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Chapter"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

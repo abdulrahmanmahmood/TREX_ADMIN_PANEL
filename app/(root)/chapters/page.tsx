@@ -23,17 +23,21 @@ const GET_CHAPTERS = gql`
     }
   }
 `;
+
 const DELETE_CHAPTER = gql`
-  mutation DeleteChapter($id: Int!) {
+  mutation DeleteChapter($id: String!) {
     deleteChapter(id: $id)
   }
 `;
 
-type Chapter = {
+type ChapterFromAPI = {
   _id: string;
   nameAr: string;
   nameEn: string;
 };
+
+// Extended type to include the required 'id' field for GenericTable
+type Chapter = ChapterFromAPI & { id: string };
 
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -53,6 +57,7 @@ const Page = () => {
       });
     },
   });
+
   const { execute: deleteChapter } = useGenericMutation({
     mutation: DELETE_CHAPTER,
     onSuccess: () => {
@@ -62,24 +67,39 @@ const Page = () => {
       console.error("Error deleting chapter:", error);
     },
   });
+
   const handleDelete = (chapter: Chapter) => {
     deleteChapter({ id: chapter._id });
   };
 
+  // Transform the API data to include the required 'id' field
+  const transformedData: Chapter[] = (data?.getChapters?.data || []).map(
+    (item: ChapterFromAPI) => ({
+      ...item,
+      id: item._id, // Add the required 'id' field
+    })
+  );
+
   const columns: {
     header: string;
     key: keyof Chapter;
+    render?: (value: unknown, item: Chapter) => React.ReactNode;
   }[] = [
-    { header: "ID", key: "_id" },
-    { header: "Arabic Name", key: "nameAr" },
-    { header: "English Name", key: "nameEn" },
+    {
+      header: "Arabic Name",
+      key: "nameAr",
+      render: (value) => <span className="font-arabic">{`${value}`}</span>,
+    },
+    {
+      header: "English Name",
+      key: "nameEn",
+    },
   ];
 
   const actions = [
     {
-      label: "Delete Chapter",
-      onClick: (item: { id: string | number }) =>
-        handleDelete(item as unknown as Chapter),
+      label: "Delete",
+      onClick: handleDelete,
       icon: <Eye className="w-4 h-4" />,
       className: "text-red-500",
     },
@@ -88,7 +108,6 @@ const Page = () => {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
-  // console.log("data?.getChapters?", data?.getChapters);
 
   return (
     <div>
@@ -99,21 +118,21 @@ const Page = () => {
         <CreateChapterModal onSuccess={refetch} />
       </div>
       <GenericTable
-        data={data?.getChapters?.data || []}
+        data={transformedData}
         columns={columns}
         actions={actions}
         subtitle={`Total Chapters: ${
-          data?.getChapters?.totalElementsCount || 0
+          data?.getChapters?.totalSize || transformedData.length
         }`}
         isLoading={loading}
-        error={error}
+        error={error || null}
       />
-      {!loading && !error && (
+      {!loading && !error && data?.getChapters?.totalPages && (
         <Pagination
-          currentPage={data?.getChapters?.pageNumber}
-          totalPages={data?.getChapters?.totalPagesCount || 1}
-          totalItems={data?.getChapters?.totalElementsCount || 0}
-          pageSize={data?.getChapters?.pageSize}
+          currentPage={data.getChapters.pageNumber || 0}
+          totalPages={data.getChapters.totalPages || 1}
+          totalItems={data.getChapters.totalSize || 0}
+          pageSize={data.getChapters.pageSize || pageSize}
           onPageChange={handlePageChange}
         />
       )}

@@ -1,18 +1,24 @@
 "use client";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { gql } from "@apollo/client";
-import React from "react";
+import React, { useState } from "react";
 import { Eye } from "lucide-react";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 
 const GET_COUNTRIES = gql`
-  query GetCountries {
-    countryList {
-      _id
-      nameEn
-      nameAr
-      code
+  query CountryList($page: Int!) {
+    countryList(pageable: { page: $page }) {
+      totalSize
+      totalPages
+      pageSize
+      pageNumber
+      data {
+        _id
+        nameEn
+        nameAr
+        code
+      }
     }
   }
 `;
@@ -30,12 +36,25 @@ type CountryFromAPI = {
   code: string;
 };
 
+type PaginatedResponse = {
+  totalSize: number;
+  totalPages: number;
+  pageSize: number;
+  pageNumber: number;
+  data: CountryFromAPI[];
+};
+
 // Extend the API type to include the required 'id' field for GenericTable
 type Country = CountryFromAPI & { id: string };
 
 const Page = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_COUNTRIES,
+    variables: {
+      page: currentPage,
+    },
     onError: (error) => {
       console.log("Error details:", {
         message: error.message,
@@ -59,8 +78,12 @@ const Page = () => {
     deleteCountry({ id: country._id });
   };
 
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
   // Transform the API data to include the required 'id' field
-  const transformedData: Country[] = (data?.countryList || []).map(
+  const transformedData: Country[] = (data?.countryList?.data || []).map(
     (item: CountryFromAPI) => ({
       ...item,
       id: item._id,
@@ -99,6 +122,12 @@ const Page = () => {
     },
   ];
 
+  const paginationProps = {
+    currentPage: data?.countryList?.pageNumber || 1,
+    totalPages: data?.countryList?.totalPages || 1,
+    onPageChange: handlePageChange,
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-3 p-8">
@@ -111,9 +140,10 @@ const Page = () => {
         data={transformedData}
         columns={columns}
         actions={actions}
-        subtitle={`Total Countries: ${transformedData.length}`}
+        subtitle={`Total Countries: ${data?.countryList?.totalSize || 0}`}
         isLoading={loading}
         error={error || null}
+        // pagination={paginationProps}
       />
     </div>
   );
