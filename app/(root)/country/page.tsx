@@ -1,10 +1,8 @@
 "use client";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { gql } from "@apollo/client";
-import React, { useState } from "react";
-import { Eye } from "lucide-react";
+import React  from "react";
 import GenericTable from "@/components/UI/Table/GenericTable";
-import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 
 const GET_COUNTRIES = gql`
   query CountryList($page: Int!) {
@@ -23,11 +21,11 @@ const GET_COUNTRIES = gql`
   }
 `;
 
-const DELETE_COUNTRY = gql`
-  mutation DeleteCountry($id: String!) {
-    deleteCountry(id: $id)
-  }
-`;
+// const DELETE_COUNTRY = gql`
+//   mutation DeleteCountry($id: String!) {
+//     deleteCountry(id: $id)
+//   }
+// `;
 
 type CountryFromAPI = {
   _id: string;
@@ -36,24 +34,23 @@ type CountryFromAPI = {
   code: string;
 };
 
-type PaginatedResponse = {
-  totalSize: number;
-  totalPages: number;
-  pageSize: number;
-  pageNumber: number;
-  data: CountryFromAPI[];
-};
-
+// type PaginatedResponse = {
+//   totalSize: number;
+//   totalPages: number;
+//   pageSize: number;
+//   pageNumber: number;
+//   data: CountryFromAPI[];
+// };
 // Extend the API type to include the required 'id' field for GenericTable
 type Country = CountryFromAPI & { id: string };
 
 const Page = () => {
-  const [currentPage, setCurrentPage] = useState(1);
+  // const [currentPage, setCurrentPage] = useState(1);
 
-  const { data, loading, error, refetch } = useGenericQuery({
+  const { data, loading, error } = useGenericQuery({
     query: GET_COUNTRIES,
     variables: {
-      page: currentPage,
+      page: 1,
     },
     onError: (error) => {
       console.log("Error details:", {
@@ -64,23 +61,23 @@ const Page = () => {
     },
   });
 
-  const { execute: deleteCountry } = useGenericMutation({
-    mutation: DELETE_COUNTRY,
-    onSuccess: () => {
-      refetch();
-    },
-    onError: (error) => {
-      console.log("Error deleting country:", error);
-    },
-  });
+  // const { execute: deleteCountry } = useGenericMutation({
+  //   mutation: DELETE_COUNTRY,
+  //   onSuccess: () => {
+  //     refetch();
+  //   },
+  //   onError: (error) => {
+  //     console.log("Error deleting country:", error);
+  //   },
+  // });
 
-  const handleDelete = (country: Country) => {
-    deleteCountry({ id: country._id });
-  };
+  // const handleDelete = (country: Country) => {
+  //   deleteCountry({ id: country._id });
+  // };
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
+  // const handlePageChange = (newPage: number) => {
+  //   setCurrentPage(newPage);
+  // };
 
   // Transform the API data to include the required 'id' field
   const transformedData: Country[] = (data?.countryList?.data || []).map(
@@ -113,20 +110,20 @@ const Page = () => {
     },
   ];
 
-  const actions = [
-    {
-      label: "Delete",
-      onClick: handleDelete,
-      icon: <Eye className="w-4 h-4" />,
-      className: "text-red-500",
-    },
-  ];
+  // const actions = [
+  //   {
+  //     label: "Delete",
+  //     onClick: handleDelete,
+  //     icon: <Eye className="w-4 h-4" />,
+  //     className: "text-red-500",
+  //   },
+  // ];
 
-  const paginationProps = {
-    currentPage: data?.countryList?.pageNumber || 1,
-    totalPages: data?.countryList?.totalPages || 1,
-    onPageChange: handlePageChange,
-  };
+  // const paginationProps = {
+  //   currentPage: data?.countryList?.pageNumber || 1,
+  //   totalPages: data?.countryList?.totalPages || 1,
+  //   onPageChange: handlePageChange,
+  // };
 
   return (
     <div>
@@ -142,7 +139,6 @@ const Page = () => {
         subtitle={`Total Countries: ${data?.countryList?.totalSize || 0}`}
         isLoading={loading}
         error={error || null}
-        // pagination={paginationProps}
       />
     </div>
   );
