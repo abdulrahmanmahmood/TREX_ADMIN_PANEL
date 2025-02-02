@@ -11,7 +11,7 @@ import { getCookie } from "cookies-next";
 import { ApolloLink } from "@apollo/client/link/core";
 
 const httpLink = createHttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL, // Your GraphQL endpoint
+  uri: "https://www.dev.trex-logistic.com/graphQL", // Your GraphQL endpoint
 });
 
 // Function to recursively remove __typename
