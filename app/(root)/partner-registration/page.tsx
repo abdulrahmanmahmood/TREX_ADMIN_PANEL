@@ -16,8 +16,8 @@ type Action<T> = {
 };
 
 const GET_REGISTRATIONS = gql`
-  query GetAllRegistrations($page: Int!) {
-    getAllRegistrations(pageable: { page: $page }) {
+  query GetAllPartnerRequests($page: Int!) {
+    getAllPartnerRequests(pageable: { page: $page }) {
       totalSize
       totalPages
       pageSize
@@ -37,13 +37,13 @@ const GET_REGISTRATIONS = gql`
 `;
 
 const APPROVE_REGISTRATION = gql`
-  mutation ApproveRegistration($id: String!) {
+  mutation ApproveRegistration($id: ID!) {
     approveRegistration(id: $id)
   }
 `;
 
 const DELETE_REGISTRATION = gql`
-  mutation DeleteRegistration($id: String!) {
+  mutation DeleteRegistration($id: ID!) {
     deleteRegistration(id: $id)
   }
 `;
@@ -77,7 +77,7 @@ type Registration = {
 };
 
 type RegistrationsResponse = {
-  getAllRegistrations: {
+  getAllPartnerRequests: {
     totalSize: number;
     totalPages: number;
     pageSize: number;
@@ -213,7 +213,8 @@ const Page = () => {
     setCurrentPage(newPage);
   };
 
-  const registrations = data?.getAllRegistrations;
+  const registrations = data?.getAllPartnerRequests;
+  console.log("registrations", registrations);
 
   return (
     <div className="w-[95%] mx-auto">
