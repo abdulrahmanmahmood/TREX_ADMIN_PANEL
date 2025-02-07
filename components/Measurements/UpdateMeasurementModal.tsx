@@ -34,14 +34,23 @@ const UPDATE_MEASUREMENT = gql`
   }
 `;
 
-const UpdateMeasurementModal = ({ measurementId, onSuccess, onClose }) => {
+interface UpdateMeasurementModalProps {
+  measurementId: string;
+  onSuccess: () => void;
+  onClose: () => void;
+}
+
+const UpdateMeasurementModal: React.FC<UpdateMeasurementModalProps> = ({
+  measurementId,
+  onSuccess,
+  onClose,
+}) => {
   const [formData, setFormData] = useState({ unitName: "", note: "" });
 
   const { data, loading } = useGenericQuery({
     query: GET_MEASUREMENT,
     variables: { id: measurementId },
-    skip: !measurementId,
-    onCompleted: (data) => {
+    onSuccess: (data: { measurement: { unitName: string; note: string } }) => {
       if (data?.measurement) {
         setFormData({
           unitName: data.measurement.unitName || "",
@@ -63,12 +72,17 @@ const UpdateMeasurementModal = ({ measurementId, onSuccess, onClose }) => {
     },
   });
 
-  const handleInputChange = (e) => {
+  interface FormData {
+    unitName: string;
+    note: string;
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     updateMeasurement({
       variables: {
