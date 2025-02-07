@@ -11,16 +11,19 @@ import toast from "react-hot-toast";
 import UpdateChapterModal from "@/components/chapter/UpdateChapterModal";
 
 const GET_CHAPTERS = gql`
-  query GetChapters($page: Int!) {
-    getChapters(pageable: { page: $page }) {
+  query GetChapters {
+    getChapters(extraFilter: { deleted: false }, pageable: { page: 1 }) {
       totalSize
       totalPages
       pageSize
       pageNumber
       data {
         _id
-        nameAr
         nameEn
+        nameAr
+        deletedAt
+        createdAt
+        updatedAt
       }
     }
   }
@@ -36,13 +39,14 @@ type ChapterFromAPI = {
   _id: string;
   nameAr: string;
   nameEn: string;
+  createdAt: string;
 };
 
 // Extended type to include the required 'id' field for GenericTable
 type Chapter = ChapterFromAPI & { id: string };
 
 const Page = () => {
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [openUpdateModal, setOpenUpdateModal] = useState(false);
@@ -104,6 +108,11 @@ const Page = () => {
     {
       header: "English Name",
       key: "nameEn",
+    },
+    {
+      header: "Created At",
+      key: "createdAt",
+      render: (value) => <span className="font-arabic">{`${value}`}</span>,
     },
   ];
 
