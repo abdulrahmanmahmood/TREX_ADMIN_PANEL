@@ -18,7 +18,7 @@ import toast from "react-hot-toast/headless";
 // GraphQL Queries
 const GET_CHAPTERS = gql`
   query GetChapters {
-    getChapters(pageable: { page: 0 }) {
+    getChapters(extraFilter: { deleted: false }, pageable: { page: 1 }) {
       data {
         _id
         nameEn
@@ -29,7 +29,7 @@ const GET_CHAPTERS = gql`
 
 const GET_AGREEMENTS = gql`
   query GetAgreements {
-    AgreementList(pageable: { page: 0 }) {
+    AgreementList(pageable: { page: 1 }) {
       data {
         _id
         name

@@ -18,7 +18,7 @@ import { toast } from "react-hot-toast";
 // GraphQL Queries
 const GET_CHAPTERS = gql`
   query GetChapters {
-    getChapters(pageable: { page: 0 }) {
+    getChapters(pageable: { page: 1 }) {
       data {
         _id
         nameEn

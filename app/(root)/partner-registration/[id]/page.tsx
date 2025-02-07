@@ -69,7 +69,7 @@ export default function Page({
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_REGISTRATIONS,
     variables: {
-      page: 0,
+      page: 1,
       size: 100,
       id: [parseInt(id)],
     },

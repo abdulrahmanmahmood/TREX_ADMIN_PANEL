@@ -48,7 +48,7 @@ const GET_AGREEMENTS = gql`
 `;
 
 const DELETE_AGREEMENT = gql`
-  mutation DeleteAgreement($id: OneAgreementResponse!) {
+  mutation DeleteAgreement($id: String!) {
     deleteAgreement(id: $id) {
       _id
       name
@@ -118,6 +118,7 @@ const Page = () => {
   const { execute: deleteAgreement } = useGenericMutation({
     mutation: DELETE_AGREEMENT,
     onSuccess: () => {
+      toast.success("Agreement deleted successfully! ✅");
       refetch();
     },
     onError: (error) => {

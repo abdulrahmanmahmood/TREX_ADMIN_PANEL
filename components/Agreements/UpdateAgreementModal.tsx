@@ -14,11 +14,16 @@ import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import toast from "react-hot-toast";
 
 const UPDATE_AGREEMENT = gql`
-  mutation UpdateAgreement(
-    $id: String!
-    $updateAgreementDTO: UpdateAgreementDTO!
-  ) {
-    updateAgreement(id: $id, updateAgreementDTO: $updateAgreementDTO)
+  mutation UpdateAgreement($updateAgreementInput: UpdateAgreementInput!) {
+    updateAgreement(updateAgreementInput: $updateAgreementInput) {
+      _id
+      name
+      note
+      reducedDutyRate
+      deletedAt
+      createdAt
+      updatedAt
+    }
   }
 `;
 
@@ -78,10 +83,12 @@ const UpdateAgreementModal: React.FC<UpdateAgreementModalProps> = ({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateAgreement({
-      id: agreementId,
-      updateAgreementDTO: {
-        ...formData,
+      updateAgreementInput: {
+        id: agreementId,
+        name: formData.name,
         reducedDutyRate: Number(formData.reducedDutyRate),
+        countryId: formData.countryId,
+        note: formData.note,
       },
     });
   };

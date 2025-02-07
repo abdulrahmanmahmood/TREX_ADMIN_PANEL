@@ -7,6 +7,7 @@ import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import CreateProductModal from "@/components/product/CreateProductModal";
+import UpdateProductModal from "@/components/product/UpdateProductModal";
 
 const GET_PRODUCTS = gql`
   query GetProducts($page: Int!) {
@@ -28,6 +29,9 @@ const GET_PRODUCTS = gql`
           _id
           unitName
           note
+        }
+        subChapterId {
+          _id
         }
       }
     }
@@ -59,8 +63,8 @@ type ProductFromAPI = {
   nameAr: string;
   note: string;
   defaultDutyRate: number;
-  serviceTax: number;
-  adVAT: number;
+  serviceTax: boolean;
+  adVAT: boolean;
   measurementUnit: {
     _id: string;
     unitName: string;
@@ -74,6 +78,27 @@ type Product = ProductFromAPI & { id: string };
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
+  const [selectedProductData, setSelectedProductData] = useState<{
+    HSCode: string;
+    nameEn: string;
+    nameAr: string;
+    defaultDutyRate: number;
+    agreementId: string;
+    serviceTax: boolean;
+    adVAT: boolean;
+  }>({
+    HSCode: "",
+    nameEn: "",
+    nameAr: "",
+    defaultDutyRate: 0,
+    agreementId: "",
+    serviceTax: false,
+    adVAT: false,
+  });
+  const [open, setOpen] = useState(false);
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_PRODUCTS,
@@ -102,6 +127,20 @@ const Page = () => {
 
   const handleDelete = (product: Product) => {
     deleteProduct({ id: product._id });
+  };
+
+  const handleUpdate = (product: Product) => {
+    setSelectedProductId(product._id);
+    setSelectedProductData({
+      HSCode: product.HSCode,
+      nameEn: product.nameEn,
+      nameAr: product.nameAr,
+      defaultDutyRate: product.defaultDutyRate,
+      agreementId: "", // You might need to adjust this based on your data structure
+      serviceTax: product.serviceTax,
+      adVAT: product.adVAT,
+    });
+    setOpen(true);
   };
 
   // Transform the API data to include the required 'id' field
@@ -156,7 +195,7 @@ const Page = () => {
     },
     {
       label: "Edit",
-      onClick: () => console.log("Edit"),
+      onClick: handleUpdate,
       className: "text-blue-500",
       icon: <Pen className="w-4 h-4" />,
     },
@@ -173,6 +212,19 @@ const Page = () => {
           Products
         </h1>
         <CreateProductModal onSuccess={refetch} />
+
+        {selectedProductId && open && (
+          <UpdateProductModal
+            productId={selectedProductId}
+            productData={selectedProductData}
+            onSuccess={() => {
+              setOpen(false);
+              setSelectedProductId(null);
+              refetch();
+            }}
+            onClose={() => setOpen(false)}
+          />
+        )}
       </div>
       <GenericTable
         data={transformedData}
