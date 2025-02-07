@@ -24,6 +24,9 @@ const GET_CHAPTERS = gql`
         deletedAt
         createdAt
         updatedAt
+        subChapters {
+          _id
+        }
       }
     }
   }

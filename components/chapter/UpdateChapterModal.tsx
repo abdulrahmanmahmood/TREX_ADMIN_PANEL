@@ -20,6 +20,9 @@ const GET_CHAPTER_BY_ID = gql`
       _id
       nameEn
       nameAr
+      subChapters {
+        _id
+      }
     }
   }
 `;
@@ -31,6 +34,9 @@ const UPDATE_CHAPTER = gql`
       _id
       nameEn
       nameAr
+      deletedAt
+      createdAt
+      updatedAt
     }
   }
 `;
@@ -92,11 +98,15 @@ const UpdateChapterModal: React.FC<UpdateChapterModalProps> = ({
       variables: {
         chapterInput: {
           id: chapterId,
+          chapterId: chapterId,
           nameEn: formData.nameEn,
           nameAr: formData.nameAr,
         },
       },
     });
+
+    console.log("Form Data:", formData);
+    console.log("Chapter ID:", chapterId);
   };
 
   // Handle input change
