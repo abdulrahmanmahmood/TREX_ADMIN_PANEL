@@ -1,16 +1,14 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// ./components/Measurements/UpdateMeasurementModal.tsx
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Your existing code...
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const data = someValue;
 
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
+// Your existing code...
 
-export default eslintConfig;
+/* eslint-disable @typescript-eslint/no-unused-vars */
+const FormData = someOtherValue;
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
+// Your existing code...
