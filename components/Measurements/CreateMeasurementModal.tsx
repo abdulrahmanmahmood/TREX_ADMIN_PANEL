@@ -15,19 +15,44 @@ import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { toast } from "react-hot-toast";
 
-// GraphQL Queries
+// GraphQL Queries remain the same
 const GET_CHAPTERS = gql`
   query GetChapters {
-    getChapters(pageable: { page: 1 }) {
+    getChapters(extraFilter: { deleted: false }) {
       data {
         _id
         nameEn
+        nameAr
       }
     }
   }
 `;
 
-// GraphQL Mutation
+const GET_SUBCHAPTERS = gql`
+  query GetSubChaptersList {
+    getSubChaptersList(extraFilter: { deleted: false }) {
+      data {
+        _id
+        nameEn
+        nameAr
+      }
+    }
+  }
+`;
+
+const GET_PRODUCTS = gql`
+  query AllProducts {
+    allProducts {
+      data {
+        _id
+        HSCode
+        nameEn
+        nameAr
+      }
+    }
+  }
+`;
+
 const CREATE_MEASUREMENT = gql`
   mutation CreateMeasurement($createMeasurementInput: CreateMeasurementInput!) {
     createMeasurement(createMeasurementInput: $createMeasurementInput)
@@ -44,13 +69,15 @@ const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     unitName: "",
-    chapterIds: "",
-    subChapterIds: "",
-    productIds: "",
+    chapterIds: [] as string[],
+    subChapterIds: [] as string[],
+    productIds: [] as string[],
   });
 
-  // Fetch Chapters for selection
+  // Fetch data
   const { data: chaptersData } = useGenericQuery({ query: GET_CHAPTERS });
+  const { data: subChaptersData } = useGenericQuery({ query: GET_SUBCHAPTERS });
+  const { data: productsData } = useGenericQuery({ query: GET_PRODUCTS });
 
   // Mutation for creating a measurement
   const { execute: createMeasurement, isLoading } = useGenericMutation({
@@ -60,9 +87,9 @@ const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
       setOpen(false);
       setFormData({
         unitName: "",
-        chapterIds: "",
-        subChapterIds: "",
-        productIds: "",
+        chapterIds: [],
+        subChapterIds: [],
+        productIds: [],
       });
       onSuccess?.();
     },
@@ -72,28 +99,48 @@ const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
   });
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createMeasurement({
-      variables: {
-        createMeasurementInput: {
-          unitName: formData.unitName,
-          chapterIds: formData.chapterIds || null,
-          subChapterIds: formData.subChapterIds || null,
-          productIds: formData.productIds || null,
-        },
+    console.log("Form Submitted");
+
+    if (!open) {
+      console.log("Modal is closed, cannot submit");
+      return;
+    }
+
+    // Convert arrays to comma-separated strings
+    const variables = {
+      createMeasurementInput: {
+        unitName: formData.unitName,
+        chapterIds: formData.chapterIds.join(","),
+        subChapterIds: formData.subChapterIds.join(","),
+        productIds: formData.productIds.join(","),
       },
-    });
+    };
+
+    console.log("Form Data State:", formData);
+    console.log("Mutation Input:", variables);
+
+    try {
+      const result = await createMeasurement(variables);
+      console.log("Mutation Result:", result);
+    } catch (error) {
+      console.error("Error creating measurement:", error);
+    }
   };
 
-  // Handle input changes
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  // Handle multi-select changes
+  const handleMultiSelect = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    fieldName: string
   ) => {
-    const { name, value } = e.target;
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [fieldName]: selectedOptions,
     }));
   };
 
@@ -117,55 +164,79 @@ const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
               id="unitName"
               name="unitName"
               value={formData.unitName}
-              onChange={handleInputChange}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, unitName: e.target.value }))
+              }
               required
+              className="w-full p-2 border rounded"
             />
           </div>
 
-          {/* Chapters Dropdown */}
+          {/* Chapters Multi-select */}
           <div className="space-y-2">
-            <Label htmlFor="chapterIds">Chapter</Label>
+            <Label htmlFor="chapters">Chapters</Label>
             <select
-              id="chapterIds"
-              name="chapterIds"
+              id="chapters"
+              multiple
               value={formData.chapterIds}
-              onChange={handleInputChange}
-              className="w-full border rounded-md p-2"
-              required
+              onChange={(e) => handleMultiSelect(e, "chapterIds")}
+              className="w-full p-2 border rounded min-h-[100px]"
             >
-              <option value="">Select a Chapter</option>
               {chaptersData?.getChapters?.data.map(
-                (chapter: { _id: string; nameEn: string }) => (
+                (chapter: { _id: string; nameEn: string; nameAr: string }) => (
                   <option key={chapter._id} value={chapter._id}>
-                    {chapter.nameEn}
+                    {chapter.nameEn} - {chapter.nameAr}
+                  </option>
+                )
+              )}
+            </select>
+            <p className="text-sm text-gray-500">
+              Hold Ctrl (Windows) or Command (Mac) to select multiple items
+            </p>
+          </div>
+
+          {/* SubChapters Multi-select */}
+          <div className="space-y-2">
+            <Label htmlFor="subchapters">SubChapters</Label>
+            <select
+              id="subchapters"
+              multiple
+              value={formData.subChapterIds}
+              onChange={(e) => handleMultiSelect(e, "subChapterIds")}
+              className="w-full p-2 border rounded min-h-[100px]"
+            >
+              {subChaptersData?.getSubChaptersList?.data.map(
+                (subChapter: {
+                  _id: string;
+                  nameEn: string;
+                  nameAr: string;
+                }) => (
+                  <option key={subChapter._id} value={subChapter._id}>
+                    {subChapter.nameEn} - {subChapter.nameAr}
                   </option>
                 )
               )}
             </select>
           </div>
 
-          {/* SubChapter ID (Optional) */}
+          {/* Products Multi-select */}
           <div className="space-y-2">
-            <Label htmlFor="subChapterIds">SubChapter ID</Label>
-            <Input
-              id="subChapterIds"
-              name="subChapterIds"
-              value={formData.subChapterIds}
-              onChange={handleInputChange}
-              placeholder="Optional"
-            />
-          </div>
-
-          {/* Product ID (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="productIds">Product ID</Label>
-            <Input
-              id="productIds"
-              name="productIds"
+            <Label htmlFor="products">Products</Label>
+            <select
+              id="products"
+              multiple
               value={formData.productIds}
-              onChange={handleInputChange}
-              placeholder="Optional"
-            />
+              onChange={(e) => handleMultiSelect(e, "productIds")}
+              className="w-full p-2 border rounded min-h-[100px]"
+            >
+              {productsData?.allProducts?.data.map(
+                (product: { _id: string; nameEn: string; HSCode: string }) => (
+                  <option key={product._id} value={product._id}>
+                    {product.nameEn} - {product.HSCode}
+                  </option>
+                )
+              )}
+            </select>
           </div>
 
           {/* Action Buttons */}

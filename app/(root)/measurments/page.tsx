@@ -2,7 +2,7 @@
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { gql } from "@apollo/client";
 import React, { useState } from "react";
-import { Pen, Trash } from "lucide-react";
+import { Pen, PlusSquareIcon, Trash2 } from "lucide-react";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
@@ -68,9 +68,8 @@ const Page = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMeasurement, setSelectedMeasurement] = useState<string | null>(
-    null
-  );
+  const [selectedMeasurement, setSelectedMeasurement] =
+    useState<Measurement | null>(null);
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_MEASUREMENTS,
@@ -102,7 +101,7 @@ const Page = () => {
   };
 
   const handleUpdate = (measurement: Measurement) => {
-    setSelectedMeasurement(measurement._id);
+    setSelectedMeasurement(measurement);
     setIsModalOpen(true);
     console.log("Update measurement:", measurement);
   };
@@ -140,11 +139,6 @@ const Page = () => {
       key: "unitName",
     },
     {
-      header: "Note",
-      key: "note",
-      render: (value) => `${value}` || "N/A",
-    },
-    {
       header: "Created By",
       key: "createdBy",
       render: (_, item) => formatUser(item.createdBy),
@@ -170,14 +164,30 @@ const Page = () => {
     {
       label: "Delete",
       onClick: handleDelete,
-      icon: <Trash className="w-4 h-4" />,
+      icon: <Trash2 className="w-4 h-4" />,
       className: "text-red-500",
     },
     {
-      label: "Edit",
+      label: "Edit Name",
       onClick: handleUpdate,
       className: "text-blue-500",
       icon: <Pen className="w-4 h-4" />,
+    },
+    {
+      label: "Add Product",
+      onClick: () => {
+        console.log("Add Product");
+      },
+      icon: <PlusSquareIcon className="w-4 h-4" />,
+      className: "text-green-500",
+    },
+    {
+      label: "Remove Subshapter",
+      onClick: () => {
+        console.log("Remove Subchapter");
+      },
+      icon: <Trash2 className="w-4 h-4" />,
+      className: "text-red-500",
     },
   ];
 
@@ -195,7 +205,7 @@ const Page = () => {
 
         {selectedMeasurement && isModalOpen && (
           <UpdateMeasurementModal
-            measurementId={selectedMeasurement}
+            selectedMeasurement={selectedMeasurement}
             onSuccess={refetch}
             onClose={() => setSelectedMeasurement(null)}
           />
