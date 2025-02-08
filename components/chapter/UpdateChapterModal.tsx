@@ -13,7 +13,6 @@ import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { toast } from "react-hot-toast";
 
-// Query to get chapter by ID
 const GET_CHAPTER_BY_ID = gql`
   query Chapter($id: ID!) {
     chapter(id: $id) {
@@ -27,7 +26,6 @@ const GET_CHAPTER_BY_ID = gql`
   }
 `;
 
-// Mutation to update chapter
 const UPDATE_CHAPTER = gql`
   mutation UpdateChapter($chapterInput: UpdateChapterDTO!) {
     updateChapter(chapterInput: $chapterInput) {
@@ -42,7 +40,7 @@ const UPDATE_CHAPTER = gql`
 `;
 
 interface UpdateChapterModalProps {
-  chapterId: string; // ID of the chapter to be updated
+  chapterId: string;
   onSuccess?: () => void;
   onClose: () => void;
 }
@@ -52,35 +50,29 @@ const UpdateChapterModal: React.FC<UpdateChapterModalProps> = ({
   onSuccess,
   onClose,
 }) => {
-  console.log("chapterId:", chapterId);
-
-  // Fetch existing chapter data
   const { data, loading: queryLoading } = useGenericQuery({
     query: GET_CHAPTER_BY_ID,
     variables: { id: chapterId },
   });
 
-  // State for form data
   const [formData, setFormData] = useState({
     nameEn: "",
     nameAr: "",
   });
 
-  // Mutation for updating chapter
   const { execute: updateChapter, isLoading: mutationLoading } =
     useGenericMutation({
       mutation: UPDATE_CHAPTER,
       onSuccess: () => {
         toast.success("Chapter updated successfully!");
-        onSuccess?.(); // Optionally refetch or update UI
-        onClose(); // Close modal after success
+        onSuccess?.();
+        onClose();
       },
       onError: (error) => {
         toast.error(`Error updating chapter: ${error.message}`);
       },
     });
 
-  // Populate form data when chapter data is fetched
   useEffect(() => {
     if (data?.chapter) {
       setFormData({
@@ -90,26 +82,26 @@ const UpdateChapterModal: React.FC<UpdateChapterModalProps> = ({
     }
   }, [data]);
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    updateChapter({
-      variables: {
-        chapterInput: {
-          id: chapterId,
-          chapterId: chapterId,
-          nameEn: formData.nameEn,
-          nameAr: formData.nameAr,
-        },
+    // Properly structure the variables
+    const variables = {
+      chapterInput: {
+        id: chapterId,
+        nameEn: formData.nameEn,
+        nameAr: formData.nameAr,
       },
-    });
+    };
 
-    console.log("Form Data:", formData);
-    console.log("Chapter ID:", chapterId);
+    try {
+      const result = await updateChapter(variables);
+      console.log("Mutation result:", result);
+    } catch (error) {
+      console.error("Mutation error:", error);
+    }
   };
 
-  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
