@@ -2,6 +2,7 @@
 import { useQuery, DocumentNode, OperationVariables } from "@apollo/client";
 import { useState, useEffect } from "react";
 import { getCookie } from "cookies-next";
+import { refreshTokenAndRetry } from "../(auth)/refreshToken";
 
 interface QueryConfig<TData, TVariables> {
   query: DocumentNode;
@@ -13,10 +14,10 @@ interface QueryConfig<TData, TVariables> {
     skip?: boolean;
     pollInterval?: number;
     fetchPolicy?:
-      | "cache-first"
-      | "network-only"
-      | "cache-and-network"
-      | "no-cache";
+    | "cache-first"
+    | "network-only"
+    | "cache-and-network"
+    | "no-cache";
     context?: Record<string, any>;
   };
 }
@@ -34,15 +35,15 @@ export const useGenericQuery = <
 }: QueryConfig<TData, TVariables>) => {
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Get the token for each query
   const token = getCookie("token");
-  console.log("Token:", token);
   const headers = {
     ...(options.context?.headers || {}),
     Authorization: token ? `Bearer ${token}` : "",
   };
-  // Prepare the context with headers
+
   const context = {
     ...options.context,
     headers: {
@@ -51,21 +52,44 @@ export const useGenericQuery = <
     },
   };
 
+  const handleError = async (error: Error) => {
+    if (
+      (error.message.includes("jwt expired") ||
+        error.message.includes("invalid token") ||
+        error.message.includes("Unauthorized")) &&
+      !isRefreshing
+    ) {
+      setIsRefreshing(true);
+      try {
+        await refreshTokenAndRetry();
+        const result = await refetch(variables);
+        if (result.data) {
+          setError(null);
+          setIsSuccess(true);
+          onSuccess?.(result.data as TData);
+        }
+      } catch (refreshError) {
+        const errorMessage = (refreshError as Error).message || defaultErrorMessage;
+        setError(errorMessage);
+        onError?.(refreshError as Error);
+      } finally {
+        setIsRefreshing(false);
+      }
+    } else {
+      const errorMessage = error.message || defaultErrorMessage;
+      setError(errorMessage);
+      onError?.(error);
+    }
+  };
+
   const { data, loading, refetch, fetchMore, networkStatus, client } = useQuery<
     TData,
     TVariables
   >(query, {
     variables,
-    // skip: options.skip,
-    // pollInterval: options.pollInterval,
-    // fetchPolicy: options.fetchPolicy,
-    context, // Pass the context with headers,
+    context,
     notifyOnNetworkStatusChange: true,
-    onError: (error) => {
-      const errorMessage = error.message || defaultErrorMessage;
-      setError(errorMessage);
-      onError?.(error);
-    },
+    onError: handleError,
     onCompleted: (data) => {
       setError(null);
       setIsSuccess(true);
@@ -73,7 +97,6 @@ export const useGenericQuery = <
     },
   });
 
-  // Reset success and error states when re-fetching
   useEffect(() => {
     if (loading) {
       setError(null);
@@ -81,14 +104,18 @@ export const useGenericQuery = <
     }
   }, [loading]);
 
-  // Enhanced refetch with context
   const refetchWithAuth = async (refetchVariables?: Partial<TVariables>) => {
-    return refetch(refetchVariables);
+    try {
+      return await refetch(refetchVariables);
+    } catch (error) {
+      await handleError(error as Error);
+      return { data: null, error };
+    }
   };
 
   return {
     data,
-    loading,
+    loading: loading || isRefreshing,
     error,
     isSuccess,
     refetch: refetchWithAuth,

@@ -130,7 +130,7 @@ const Page = () => {
       });
     } catch (error) {
       console.log("Error approving registration:", error);
-      toast.error(`Error creating product: ${error}`, {
+      toast.error(`${(error as Error).message}`, {
         duration: 5000,
         icon: "❌",
       });

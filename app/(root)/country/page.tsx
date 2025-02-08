@@ -6,6 +6,7 @@ import GenericTable from "@/components/UI/Table/GenericTable";
 import CreateCountryModal from "@/components/country/CreateCountryModal";
 import { Pen } from "lucide-react";
 import UpdateCountryModal from "@/components/country/UpdateCountryModal";
+import Pagination from "@/components/UI/pagination/Pagination";
 
 const GET_COUNTRIES = gql`
   query CountryList($page: Int!) {
@@ -37,14 +38,6 @@ type CountryFromAPI = {
   code: string;
 };
 
-// type PaginatedResponse = {
-//   totalSize: number;
-//   totalPages: number;
-//   pageSize: number;
-//   pageNumber: number;
-//   data: CountryFromAPI[];
-// };
-// Extend the API type to include the required 'id' field for GenericTable
 type Country = CountryFromAPI & { id: string };
 
 const Page = () => {
@@ -52,11 +45,13 @@ const Page = () => {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_COUNTRIES,
     variables: {
-      page: 1,
+      page: currentPage,
     },
     onError: (error) => {
       console.log("Error details:", {
@@ -81,9 +76,9 @@ const Page = () => {
   //   deleteCountry({ id: country._id });
   // };
 
-  // const handlePageChange = (newPage: number) => {
-  //   setCurrentPage(newPage);
-  // };
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
   // Transform the API data to include the required 'id' field
   const transformedData: Country[] = (data?.countryList?.data || []).map(
@@ -163,6 +158,15 @@ const Page = () => {
         error={error || null}
         actions={actions}
       />
+      {!loading && !error && data?.countryList?.totalSize && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={data.countryList.totalPages || 1}
+          totalItems={data.countryList.totalSize || 0}
+          pageSize={data.countryList.pageSize || pageSize}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 };

@@ -2,17 +2,18 @@
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { gql } from "@apollo/client";
 import React, { useState } from "react";
-import { Pen, TrashIcon } from "lucide-react";
+import { EyeIcon, Pen, TrashIcon } from "lucide-react";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import CreateChapterModal from "@/components/chapter/CreateChapterModal";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 import UpdateChapterModal from "@/components/chapter/UpdateChapterModal";
+import { useRouter } from "next/navigation";
 
 const GET_CHAPTERS = gql`
-  query GetChapters {
-    getChapters(extraFilter: { deleted: false }, pageable: { page: 1 }) {
+  query GetChapters($page: Int!) {
+    getChapters(pageable: { page: $page }, extraFilter: { deleted: false }) {
       totalSize
       totalPages
       pageSize
@@ -53,6 +54,7 @@ const Page = () => {
   const pageSize = 10;
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [openUpdateModal, setOpenUpdateModal] = useState(false);
+  const router = useRouter();
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_CHAPTERS,
@@ -132,14 +134,23 @@ const Page = () => {
       icon: <Pen className="w-4 h-4" />,
       className: "text-blue-500",
     },
+    {
+      label: "View Chapter",
+      onClick: (item: Chapter) => {
+        router.push(`chapters/${item.id}`);
+      },
+      icon: <EyeIcon className="w-4 h-4" />,
+      className: "text-green-500",
+    },
   ];
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+    console.log("New page:", newPage);
   };
 
   return (
-    <div>
+    <div className="w-[95%] ml-4">
       <div className="flex justify-between items-center mb-3 p-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Chapters
@@ -166,7 +177,7 @@ const Page = () => {
       />
       {!loading && !error && data?.getChapters?.totalPages && (
         <Pagination
-          currentPage={data.getChapters.pageNumber || 0}
+          currentPage={currentPage}
           totalPages={data.getChapters.totalPages || 1}
           totalItems={data.getChapters.totalSize || 0}
           pageSize={data.getChapters.pageSize || pageSize}

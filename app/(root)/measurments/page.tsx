@@ -65,7 +65,7 @@ type MeasurementFromAPI = {
 type Measurement = MeasurementFromAPI & { id: string };
 
 const Page = () => {
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMeasurement, setSelectedMeasurement] = useState<string | null>(

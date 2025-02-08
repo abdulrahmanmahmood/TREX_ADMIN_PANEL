@@ -42,7 +42,7 @@ const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
       onSuccess?.();
     },
     onError: (error) => {
-      console.error("Error creating chapter:", error);
+      console.log("Error creating chapter:", error);
       toast.error(error.message || "Failed to create chapter ❌"); // ✅ Error toast
     },
   });
