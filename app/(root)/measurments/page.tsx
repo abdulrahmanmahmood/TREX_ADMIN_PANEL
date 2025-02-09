@@ -2,15 +2,16 @@
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { gql } from "@apollo/client";
 import React, { useState } from "react";
-import { Pen, Trash } from "lucide-react";
+import { Pen, PlusSquareIcon, Trash2 } from "lucide-react";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import CreateMeasurementModal from "@/components/Measurements/CreateMeasurementModal";
 import UpdateMeasurementModal from "@/components/Measurements/UpdateMeasurementModal";
+import AddUnitsToMeasurement from "@/components/Measurements/AddUnitsToMeasurement";
 const GET_MEASUREMENTS = gql`
   query GetMeasurements($page: Int!) {
-    measurements(pageable: { page: $page }) {
+    measurements(filter: { deleted: false }, pageable: { page: $page }) {
       totalSize
       totalPages
       pageSize
@@ -68,9 +69,9 @@ const Page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMeasurement, setSelectedMeasurement] = useState<string | null>(
-    null
-  );
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [selectedMeasurement, setSelectedMeasurement] =
+    useState<Measurement | null>(null);
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_MEASUREMENTS,
@@ -102,9 +103,17 @@ const Page = () => {
   };
 
   const handleUpdate = (measurement: Measurement) => {
-    setSelectedMeasurement(measurement._id);
+    setSelectedMeasurement(measurement);
     setIsModalOpen(true);
+    setIsUpdateModalOpen(false);
     console.log("Update measurement:", measurement);
+  };
+
+  const handleAddUnits = (measurement: Measurement) => {
+    setSelectedMeasurement(measurement);
+    setIsUpdateModalOpen(true);
+    setIsModalOpen(false);
+    console.log("Add units to measurement:", measurement);
   };
 
   // Transform the API data to include the required 'id' field
@@ -140,11 +149,6 @@ const Page = () => {
       key: "unitName",
     },
     {
-      header: "Note",
-      key: "note",
-      render: (value) => `${value}` || "N/A",
-    },
-    {
       header: "Created By",
       key: "createdBy",
       render: (_, item) => formatUser(item.createdBy),
@@ -170,14 +174,28 @@ const Page = () => {
     {
       label: "Delete",
       onClick: handleDelete,
-      icon: <Trash className="w-4 h-4" />,
+      icon: <Trash2 className="w-4 h-4" />,
       className: "text-red-500",
     },
     {
-      label: "Edit",
+      label: "Edit Name",
       onClick: handleUpdate,
       className: "text-blue-500",
       icon: <Pen className="w-4 h-4" />,
+    },
+    {
+      label: "Add Units",
+      onClick: handleAddUnits,
+      icon: <PlusSquareIcon className="w-4 h-4" />,
+      className: "text-green-500",
+    },
+    {
+      label: "Remove Units",
+      onClick: () => {
+        console.log("Remove Subchapter");
+      },
+      icon: <Trash2 className="w-4 h-4" />,
+      className: "text-red-500",
     },
   ];
 
@@ -195,7 +213,15 @@ const Page = () => {
 
         {selectedMeasurement && isModalOpen && (
           <UpdateMeasurementModal
-            measurementId={selectedMeasurement}
+            selectedMeasurement={selectedMeasurement}
+            onSuccess={refetch}
+            onClose={() => setSelectedMeasurement(null)}
+          />
+        )}
+
+        {isUpdateModalOpen && selectedMeasurement && (
+          <AddUnitsToMeasurement
+            selectedMeasurement={selectedMeasurement}
             onSuccess={refetch}
             onClose={() => setSelectedMeasurement(null)}
           />

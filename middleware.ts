@@ -12,6 +12,8 @@ export function middleware(request: NextRequest) {
   );
   const token = request.cookies.get("token")?.value;
 
+  console.log("token", token);
+
   if (isPulicRoute && token) {
     return NextResponse.redirect(new URL("/", request.url));
   }

@@ -34,6 +34,7 @@ export function useLogin() {
     onCompleted: (data) => {
       // Store the token
       localStorage.setItem("token", data.authenticate);
+      console.log("Token stored:", data.authenticate);
       document.cookie = `token=${data.authenticate}; path=/`;
       // Configure axios default headers for future requests
       axios.defaults.headers.common[

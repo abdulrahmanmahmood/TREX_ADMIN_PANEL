@@ -1,8 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
-import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { Button } from "@/components/UI/button";
 import {
   Dialog,
@@ -14,51 +13,33 @@ import { Input } from "@/components/UI/input";
 import { Label } from "@/components/UI/label";
 import { toast } from "react-hot-toast";
 
-// GraphQL Queries & Mutations
-const GET_MEASUREMENT = gql`
-  query GetMeasurement($id: String!) {
-    measurement(id: $id) {
-      _id
-      unitName
-      note
-    }
+const UPDATE_MEASUREMENT = gql`
+  mutation UpdateMeasurement($updateMeasurementInput: UpdateMeasurementName!) {
+    updateMeasurement(updateMeasurementInput: $updateMeasurementInput)
   }
 `;
 
-const UPDATE_MEASUREMENT = gql`
-  mutation UpdateMeasurement(
-    $id: String!
-    $updateMeasurementInput: UpdateMeasurementDTO!
-  ) {
-    updateMeasurement(id: $id, updateMeasurementInput: $updateMeasurementInput)
-  }
-`;
+interface Measurement {
+  _id: string;
+  unitName: string;
+}
 
 interface UpdateMeasurementModalProps {
-  measurementId: string;
+  selectedMeasurement: Measurement;
   onSuccess: () => void;
   onClose: () => void;
 }
 
 const UpdateMeasurementModal: React.FC<UpdateMeasurementModalProps> = ({
-  measurementId,
+  selectedMeasurement,
   onSuccess,
   onClose,
 }) => {
-  const [formData, setFormData] = useState({ unitName: "", note: "" });
+  const [unitName, setUnitName] = useState(selectedMeasurement.unitName);
 
-  const { data, loading } = useGenericQuery({
-    query: GET_MEASUREMENT,
-    variables: { id: measurementId },
-    onSuccess: (data: { measurement: { unitName: string; note: string } }) => {
-      if (data?.measurement) {
-        setFormData({
-          unitName: data.measurement.unitName || "",
-          note: data.measurement.note || "",
-        });
-      }
-    },
-  });
+  useEffect(() => {
+    setUnitName(selectedMeasurement.unitName);
+  }, [selectedMeasurement]);
 
   const { execute: updateMeasurement, isLoading } = useGenericMutation({
     mutation: UPDATE_MEASUREMENT,
@@ -72,31 +53,21 @@ const UpdateMeasurementModal: React.FC<UpdateMeasurementModalProps> = ({
     },
   });
 
-  interface FormData {
-    unitName: string;
-    note: string;
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     updateMeasurement({
-      variables: {
-        id: measurementId,
-        updateMeasurementInput: formData,
+      updateMeasurementInput: {
+        id: selectedMeasurement._id,
+        unitName: unitName,
       },
     });
   };
 
   return (
-    <Dialog open={!!measurementId} onOpenChange={onClose}>
+    <Dialog open={!!selectedMeasurement._id} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Update Measurement</DialogTitle>
+          <DialogTitle>Update Measurement Name</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -104,25 +75,16 @@ const UpdateMeasurementModal: React.FC<UpdateMeasurementModalProps> = ({
             <Input
               id="unitName"
               name="unitName"
-              value={formData.unitName}
-              onChange={handleInputChange}
+              value={unitName}
+              onChange={(e) => setUnitName(e.target.value)}
               required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="note">Note</Label>
-            <Input
-              id="note"
-              name="note"
-              value={formData.note}
-              onChange={handleInputChange}
             />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || loading}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Updating..." : "Update"}
             </Button>
           </div>

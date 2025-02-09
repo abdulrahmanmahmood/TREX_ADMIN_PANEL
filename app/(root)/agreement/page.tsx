@@ -12,7 +12,7 @@ import UpdateAgreementModal from "@/components/Agreements/UpdateAgreementModal";
 
 const GET_AGREEMENTS = gql`
   query GetAgreements($page: Int!) {
-    AgreementList(pageable: { page: $page }) {
+    AgreementList(filter: { deleted: false }, pageable: { page: $page }) {
       data {
         _id
         name
@@ -20,12 +20,7 @@ const GET_AGREEMENTS = gql`
         reducedDutyRate
         createdAt
         updatedAt
-        countryId {
-          _id
-          nameEn
-          nameAr
-          code
-        }
+
         createdBy {
           _id
           firstName
@@ -46,6 +41,14 @@ const GET_AGREEMENTS = gql`
     }
   }
 `;
+
+// backend should fix this
+// countryId {
+//   _id
+//   nameEn
+//   nameAr
+//   code
+// }
 
 const DELETE_AGREEMENT = gql`
   mutation DeleteAgreement($id: String!) {
@@ -171,19 +174,19 @@ const Page = () => {
       header: "Agreement Name",
       key: "name",
     },
-    {
-      header: "Country",
-      key: "countryId",
-      render: (_, item) => (
-        <div>
-          <div>{item.countryId.nameEn}</div>
-          <div className="text-sm text-gray-500">{item.countryId.nameAr}</div>
-          <div className="text-xs text-gray-400">
-            Code: {item.countryId.code}
-          </div>
-        </div>
-      ),
-    },
+    // {
+    //   header: "Country",
+    //   key: "countryId",
+    //   render: (_, item) => (
+    //     <div>
+    //       <div>{item.countryId.nameEn}</div>
+    //       <div className="text-sm text-gray-500">{item.countryId.nameAr}</div>
+    //       <div className="text-xs text-gray-400">
+    //         Code: {item.countryId.code}
+    //       </div>
+    //     </div>
+    //   ),
+    // },
     {
       header: "Reduced Duty Rate",
       key: "reducedDutyRate",

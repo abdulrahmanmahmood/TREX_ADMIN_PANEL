@@ -10,59 +10,142 @@ import {
 import { Input } from "@/components/UI/input";
 import { Label } from "@/components/UI/label";
 import { Plus } from "lucide-react";
+import Select, { StylesConfig } from "react-select";
 import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { toast } from "react-hot-toast";
 
-// GraphQL Queries
+// Interface definitions
+interface CreateMeasurementModalProps {
+  onSuccess?: () => void;
+}
+
+interface FormData {
+  unitName: string;
+  chapterIds: string[];
+  subChapterIds: string[];
+  productIds: string[];
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface Chapter {
+  _id: string;
+  nameEn: string;
+  nameAr: string;
+}
+
+interface SubChapter {
+  _id: string;
+  nameEn: string;
+  nameAr: string;
+}
+
+interface Product {
+  _id: string;
+  nameEn: string;
+  HSCode: string;
+  nameAr?: string;
+}
+
+interface CreateMeasurementInput {
+  unitName?: string;
+  chapterIds?: string;
+  subChapterIds?: string;
+  productIds?: string;
+}
+
+// GraphQL queries
 const GET_CHAPTERS = gql`
   query GetChapters {
-    getChapters(pageable: { page: 1 }) {
+    getChapters(extraFilter: { deleted: false }) {
       data {
         _id
         nameEn
+        nameAr
       }
     }
   }
 `;
 
-// GraphQL Mutation
+const GET_SUBCHAPTERS = gql`
+  query GetSubChaptersList {
+    getSubChaptersList(extraFilter: { deleted: false }) {
+      data {
+        _id
+        nameEn
+        nameAr
+      }
+    }
+  }
+`;
+
+const GET_PRODUCTS = gql`
+  query AllProducts {
+    allProducts {
+      data {
+        _id
+        HSCode
+        nameEn
+        nameAr
+      }
+    }
+  }
+`;
+
 const CREATE_MEASUREMENT = gql`
   mutation CreateMeasurement($createMeasurementInput: CreateMeasurementInput!) {
     createMeasurement(createMeasurementInput: $createMeasurementInput)
   }
 `;
 
-interface CreateMeasurementModalProps {
-  onSuccess?: () => void;
-}
-
 const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
   onSuccess,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [open, setOpen] = useState<boolean>(false);
+  const [formData, setFormData] = useState<FormData>({
     unitName: "",
-    chapterIds: "",
-    subChapterIds: "",
-    productIds: "",
+    chapterIds: [],
+    subChapterIds: [],
+    productIds: [],
   });
 
-  // Fetch Chapters for selection
-  const { data: chaptersData } = useGenericQuery({ query: GET_CHAPTERS });
+  // Query hooks with type definitions
+  const { data: chaptersData } = useGenericQuery<{
+    getChapters: { data: Chapter[] };
+  }>({
+    query: GET_CHAPTERS,
+  });
 
-  // Mutation for creating a measurement
-  const { execute: createMeasurement, isLoading } = useGenericMutation({
+  const { data: subChaptersData } = useGenericQuery<{
+    getSubChaptersList: { data: SubChapter[] };
+  }>({
+    query: GET_SUBCHAPTERS,
+  });
+
+  const { data: productsData } = useGenericQuery<{
+    allProducts: { data: Product[] };
+  }>({
+    query: GET_PRODUCTS,
+  });
+
+  const { execute: createMeasurement, isLoading } = useGenericMutation<
+    { createMeasurement: boolean },
+    { createMeasurementInput: CreateMeasurementInput }
+  >({
     mutation: CREATE_MEASUREMENT,
     onSuccess: () => {
       toast.success("Measurement created successfully!");
       setOpen(false);
       setFormData({
         unitName: "",
-        chapterIds: "",
-        subChapterIds: "",
-        productIds: "",
+        chapterIds: [],
+        subChapterIds: [],
+        productIds: [],
       });
       onSuccess?.();
     },
@@ -71,30 +154,83 @@ const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
     },
   });
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createMeasurement({
-      variables: {
-        createMeasurementInput: {
-          unitName: formData.unitName,
-          chapterIds: formData.chapterIds || null,
-          subChapterIds: formData.subChapterIds || null,
-          productIds: formData.productIds || null,
-        },
-      },
-    });
+
+    // Create base input with required unitName
+    const createMeasurementInput: Partial<CreateMeasurementInput> = {
+      unitName: formData.unitName,
+    };
+
+    // Only add arrays if they have items
+    if (formData.chapterIds.length > 0) {
+      createMeasurementInput.chapterIds = formData.chapterIds.join(",");
+    }
+
+    if (formData.subChapterIds.length > 0) {
+      createMeasurementInput.subChapterIds = formData.subChapterIds.join(",");
+    }
+
+    if (formData.productIds.length > 0) {
+      createMeasurementInput.productIds = formData.productIds.join(",");
+    }
+
+    const variables = {
+      createMeasurementInput,
+    };
+
+    try {
+      await createMeasurement(variables);
+    } catch (error) {
+      console.error("Error creating measurement:", error);
+    }
   };
 
-  // Handle input changes
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  // Transform data for react-select with proper typing
+  const chapterOptions: SelectOption[] =
+    chaptersData?.getChapters?.data.map((chapter) => ({
+      value: chapter._id,
+      label: `${chapter.nameEn} - ${chapter.nameAr}`,
+    })) || [];
+
+  const subChapterOptions: SelectOption[] =
+    subChaptersData?.getSubChaptersList?.data.map((subChapter) => ({
+      value: subChapter._id,
+      label: `${subChapter.nameEn} - ${subChapter.nameAr}`,
+    })) || [];
+
+  const productOptions: SelectOption[] =
+    productsData?.allProducts?.data.map((product) => ({
+      value: product._id,
+      label: `${product.nameEn} - ${product.HSCode}`,
+    })) || [];
+
+  // Custom styles with proper typing
+  const selectStyles: StylesConfig<SelectOption, true> = {
+    control: (base) => ({
+      ...base,
+      backgroundColor: "white",
+      borderColor: "#e2e8f0",
+      "&:hover": {
+        borderColor: "#cbd5e1",
+      },
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: "white",
+      zIndex: 50,
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? "#0f172a"
+        : state.isFocused
+        ? "#f1f5f9"
+        : "white",
+      "&:active": {
+        backgroundColor: "#e2e8f0",
+      },
+    }),
   };
 
   return (
@@ -105,70 +241,72 @@ const CreateMeasurementModal: React.FC<CreateMeasurementModalProps> = ({
           Add New Measurement
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[1000px]">
         <DialogHeader>
           <DialogTitle>Create New Measurement</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Unit Name */}
           <div className="space-y-2">
             <Label htmlFor="unitName">Unit Name</Label>
             <Input
               id="unitName"
-              name="unitName"
               value={formData.unitName}
-              onChange={handleInputChange}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setFormData((prev) => ({ ...prev, unitName: e.target.value }))
+              }
               required
+              className="w-full"
             />
           </div>
 
-          {/* Chapters Dropdown */}
           <div className="space-y-2">
-            <Label htmlFor="chapterIds">Chapter</Label>
-            <select
-              id="chapterIds"
-              name="chapterIds"
-              value={formData.chapterIds}
-              onChange={handleInputChange}
-              className="w-full border rounded-md p-2"
-              required
-            >
-              <option value="">Select a Chapter</option>
-              {chaptersData?.getChapters?.data.map(
-                (chapter: { _id: string; nameEn: string }) => (
-                  <option key={chapter._id} value={chapter._id}>
-                    {chapter.nameEn}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          {/* SubChapter ID (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="subChapterIds">SubChapter ID</Label>
-            <Input
-              id="subChapterIds"
-              name="subChapterIds"
-              value={formData.subChapterIds}
-              onChange={handleInputChange}
-              placeholder="Optional"
+            <Label>Chapters</Label>
+            <Select<SelectOption, true>
+              isMulti
+              options={chapterOptions}
+              styles={selectStyles}
+              className="w-[950px]"
+              onChange={(selected) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  chapterIds: selected?.map((option) => option.value) || [],
+                }))
+              }
             />
           </div>
 
-          {/* Product ID (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="productIds">Product ID</Label>
-            <Input
-              id="productIds"
-              name="productIds"
-              value={formData.productIds}
-              onChange={handleInputChange}
-              placeholder="Optional"
+            <Label>SubChapters</Label>
+            <Select<SelectOption, true>
+              isMulti
+              options={subChapterOptions}
+              styles={selectStyles}
+              className="w-[950px]"
+              onChange={(selected) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  subChapterIds: selected?.map((option) => option.value) || [],
+                }))
+              }
             />
           </div>
 
-          {/* Action Buttons */}
+          <div className="space-y-2">
+            <Label>Products</Label>
+            <Select<SelectOption, true>
+              isMulti
+              options={productOptions}
+              styles={selectStyles}
+              className="w-[950px]"
+              onChange={(selected) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  productIds: selected?.map((option) => option.value) || [],
+                }))
+              }
+            />
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button
               type="button"
