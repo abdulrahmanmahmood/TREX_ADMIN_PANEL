@@ -150,7 +150,7 @@ const Page = () => {
   };
 
   return (
-    <div className="w-[95%] ml-4">
+    <div className="w-[90%] ml-4">
       <div className="flex justify-between items-center mb-3 p-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Chapters

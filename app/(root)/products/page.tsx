@@ -65,6 +65,9 @@ type ProductFromAPI = {
   defaultDutyRate: number;
   serviceTax: boolean;
   adVAT: boolean;
+  subChapterId: {
+    _id: string;
+  };
   measurementUnit: {
     _id: string;
     unitName: string;
@@ -89,6 +92,7 @@ const Page = () => {
     agreementId: string;
     serviceTax: boolean;
     adVAT: boolean;
+    subChapterId: string;
   }>({
     HSCode: "",
     nameEn: "",
@@ -97,6 +101,7 @@ const Page = () => {
     agreementId: "",
     serviceTax: false,
     adVAT: false,
+    subChapterId: "",
   });
   const [open, setOpen] = useState(false);
 
@@ -139,6 +144,7 @@ const Page = () => {
       agreementId: "", // You might need to adjust this based on your data structure
       serviceTax: product.serviceTax,
       adVAT: product.adVAT,
+      subChapterId: product.subChapterId._id,
     });
     setOpen(true);
   };
@@ -206,7 +212,7 @@ const Page = () => {
   };
 
   return (
-    <div>
+    <div className="w-[90%] ml-5">
       <div className="flex justify-between items-center mb-3 p-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Products

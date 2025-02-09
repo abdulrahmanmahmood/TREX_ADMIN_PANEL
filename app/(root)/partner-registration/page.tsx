@@ -17,7 +17,10 @@ type Action<T> = {
 
 const GET_REGISTRATIONS = gql`
   query GetAllPartnerRequests($page: Int!) {
-    getAllPartnerRequests(pageable: { page: $page }) {
+    getAllPartnerRequests(
+      pageable: { page: $page }
+      filter: { deleted: false }
+    ) {
       totalSize
       totalPages
       pageSize
@@ -43,8 +46,10 @@ const APPROVE_REGISTRATION = gql`
 `;
 
 const DELETE_REGISTRATION = gql`
-  mutation DeleteRegistration($id: ID!) {
-    deleteRegistration(id: $id)
+  mutation SoftDeletePartner($id: ID!) {
+    softDeletePartner(id: $id) {
+      _id
+    }
   }
 `;
 
