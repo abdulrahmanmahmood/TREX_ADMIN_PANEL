@@ -8,9 +8,10 @@ import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import CreateMeasurementModal from "@/components/Measurements/CreateMeasurementModal";
 import UpdateMeasurementModal from "@/components/Measurements/UpdateMeasurementModal";
+import AddUnitsToMeasurement from "@/components/Measurements/AddUnitsToMeasurement";
 const GET_MEASUREMENTS = gql`
   query GetMeasurements($page: Int!) {
-    measurements(pageable: { page: $page }) {
+    measurements(filter: { deleted: false }, pageable: { page: $page }) {
       totalSize
       totalPages
       pageSize
@@ -68,6 +69,7 @@ const Page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedMeasurement, setSelectedMeasurement] =
     useState<Measurement | null>(null);
 
@@ -103,7 +105,15 @@ const Page = () => {
   const handleUpdate = (measurement: Measurement) => {
     setSelectedMeasurement(measurement);
     setIsModalOpen(true);
+    setIsUpdateModalOpen(false);
     console.log("Update measurement:", measurement);
+  };
+
+  const handleAddUnits = (measurement: Measurement) => {
+    setSelectedMeasurement(measurement);
+    setIsUpdateModalOpen(true);
+    setIsModalOpen(false);
+    console.log("Add units to measurement:", measurement);
   };
 
   // Transform the API data to include the required 'id' field
@@ -174,15 +184,13 @@ const Page = () => {
       icon: <Pen className="w-4 h-4" />,
     },
     {
-      label: "Add Product",
-      onClick: () => {
-        console.log("Add Product");
-      },
+      label: "Add Units",
+      onClick: handleAddUnits,
       icon: <PlusSquareIcon className="w-4 h-4" />,
       className: "text-green-500",
     },
     {
-      label: "Remove Subshapter",
+      label: "Remove Units",
       onClick: () => {
         console.log("Remove Subchapter");
       },
@@ -205,6 +213,14 @@ const Page = () => {
 
         {selectedMeasurement && isModalOpen && (
           <UpdateMeasurementModal
+            selectedMeasurement={selectedMeasurement}
+            onSuccess={refetch}
+            onClose={() => setSelectedMeasurement(null)}
+          />
+        )}
+
+        {isUpdateModalOpen && selectedMeasurement && (
+          <AddUnitsToMeasurement
             selectedMeasurement={selectedMeasurement}
             onSuccess={refetch}
             onClose={() => setSelectedMeasurement(null)}
