@@ -1,19 +1,42 @@
 import React, { useState } from "react";
-import { Button } from "@/components/UI/button";
+import { Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { gql } from "@apollo/client";
+import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
+import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
+import toast from "react-hot-toast/headless";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/UI/dialog";
-import { Input } from "@/components/UI/input";
-import { Label } from "@/components/UI/label";
-import { Plus } from "lucide-react";
-import { gql } from "@apollo/client";
-import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
-import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
-import toast from "react-hot-toast/headless";
+} from "../UI/dialog";
+import { Button } from "../UI/button";
+import { Label } from "../UI/label";
+import { Input } from "../UI/input";
+
+// Types
+interface Chapter {
+  _id: string;
+  nameEn: string;
+  subChapters: SubChapter[];
+}
+
+interface SubChapter {
+  _id: string;
+  nameEn: string;
+}
+
+interface FormData {
+  HSCode: string;
+  nameEn: string;
+  nameAr: string;
+  defaultDutyRate: number;
+  subChapterId: string;
+  agreementId: string;
+  serviceTax: boolean;
+  adVAT: boolean;
+}
 
 // GraphQL Queries
 const GET_CHAPTERS = gql`
@@ -22,6 +45,10 @@ const GET_CHAPTERS = gql`
       data {
         _id
         nameEn
+        subChapters {
+          _id
+          nameEn
+        }
       }
     }
   }
@@ -29,7 +56,7 @@ const GET_CHAPTERS = gql`
 
 const GET_AGREEMENTS = gql`
   query GetAgreements {
-    AgreementList(pageable: { page: 1 }) {
+    AgreementList(filter: { deleted: false }, pageable: { page: 1 }) {
       data {
         _id
         name
@@ -52,7 +79,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
   onSuccess,
 }) => {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isChapterDropdownOpen, setIsChapterDropdownOpen] = useState(false);
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState("Select a Chapter");
+  const [formData, setFormData] = useState<FormData>({
     HSCode: "",
     nameEn: "",
     nameAr: "",
@@ -63,7 +93,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
     adVAT: false,
   });
 
-  // Fetch Chapters and Agreements
   const { data: chaptersData } = useGenericQuery({ query: GET_CHAPTERS });
   const { data: agreementsData } = useGenericQuery({ query: GET_AGREEMENTS });
 
@@ -81,11 +110,11 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
         serviceTax: false,
         adVAT: false,
       });
+      setSelectedName("Select a Chapter");
       toast.success("Product created successfully! ✅");
       onSuccess?.();
     },
     onError: (error) => {
-      console.log("Error creating product:", error);
       toast.error(`Error creating product: ${error.message}`);
     },
   });
@@ -110,6 +139,24 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
     }));
   };
 
+  const handleChapterSelect = (chapter: Chapter) => {
+    setFormData((prev) => ({
+      ...prev,
+      subChapterId: chapter._id,
+    }));
+    setSelectedName(chapter.nameEn);
+    setIsChapterDropdownOpen(false);
+  };
+
+  const handleSubChapterSelect = (subChapter: SubChapter) => {
+    setFormData((prev) => ({
+      ...prev,
+      subChapterId: subChapter._id,
+    }));
+    setSelectedName(subChapter.nameEn);
+    setIsChapterDropdownOpen(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -123,7 +170,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
           <DialogTitle>Create New Product</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* HS Code */}
+          {/* Basic form fields */}
           <div className="space-y-2">
             <Label htmlFor="HSCode">HS Code</Label>
             <Input
@@ -135,7 +182,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             />
           </div>
 
-          {/* English Name */}
           <div className="space-y-2">
             <Label htmlFor="nameEn">English Name</Label>
             <Input
@@ -147,7 +193,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             />
           </div>
 
-          {/* Arabic Name */}
           <div className="space-y-2">
             <Label htmlFor="nameAr">Arabic Name</Label>
             <Input
@@ -159,7 +204,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             />
           </div>
 
-          {/* Default Duty Rate */}
           <div className="space-y-2">
             <Label htmlFor="defaultDutyRate">Default Duty Rate (%)</Label>
             <Input
@@ -172,26 +216,59 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             />
           </div>
 
-          {/* Chapters Dropdown */}
+          {/* Custom Chapter Dropdown */}
           <div className="space-y-2">
-            <Label htmlFor="subChapterId">Chapter</Label>
-            <select
-              id="subChapterId"
-              name="subChapterId"
-              value={formData.subChapterId}
-              onChange={handleInputChange}
-              className="w-full border rounded-md p-2"
-              required
-            >
-              <option value="">Select a Chapter</option>
-              {chaptersData?.getChapters?.data.map(
-                (chapter: { _id: string; nameEn: string }) => (
-                  <option key={chapter._id} value={chapter._id}>
-                    {chapter.nameEn}
-                  </option>
-                )
+            <Label>Chapter</Label>
+            <div className="relative">
+              <div
+                className="w-full border rounded-md p-2 flex justify-between items-center cursor-pointer bg-white"
+                onClick={() => setIsChapterDropdownOpen(!isChapterDropdownOpen)}
+              >
+                <span>{selectedName}</span>
+                <ChevronDown className="w-4 h-4" />
+              </div>
+
+              {isChapterDropdownOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                  {chaptersData?.getChapters?.data.map((chapter: Chapter) => (
+                    <div key={chapter._id} className="border-b last:border-b-0">
+                      <div
+                        className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          if (expandedChapter === chapter._id) {
+                            handleChapterSelect(chapter);
+                          } else {
+                            setExpandedChapter(chapter._id);
+                          }
+                        }}
+                      >
+                        {chapter.subChapters?.length > 0 && (
+                          <span className="mr-2">
+                            {expandedChapter === chapter._id ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </span>
+                        )}
+                        <span className="font-medium">{chapter.nameEn}</span>
+                      </div>
+
+                      {expandedChapter === chapter._id &&
+                        chapter.subChapters?.map((subChapter) => (
+                          <div
+                            key={subChapter._id}
+                            className="pl-8 pr-3 py-2 hover:bg-gray-100 cursor-pointer text-sm border-t"
+                            onClick={() => handleSubChapterSelect(subChapter)}
+                          >
+                            {subChapter.nameEn}
+                          </div>
+                        ))}
+                    </div>
+                  ))}
+                </div>
               )}
-            </select>
+            </div>
           </div>
 
           {/* Agreements Dropdown */}
@@ -252,11 +329,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
               {isLoading ? "Creating..." : "Create"}
             </Button>
           </div>
-
-          {/* Submit Button */}
-          {/* <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Product"}
-          </Button> */}
         </form>
       </DialogContent>
     </Dialog>
@@ -264,230 +336,3 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
 };
 
 export default CreateProductModal;
-
-// import React, { useState } from "react";
-// import { Button } from "@/components/UI/button";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from "@/components/UI/dialog";
-// import { Input } from "@/components/UI/input";
-// import { Label } from "@/components/UI/label";
-// import { Plus } from "lucide-react";
-// import { gql } from "@apollo/client";
-// import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
-// import toast from "react-hot-toast/headless";
-
-// const CREATE_PRODUCT = gql`
-//   mutation CreateProduct($createProductInput: CreateProductInput!) {
-//     createProduct(createProductInput: $createProductInput)
-//   }
-// `;
-
-// interface CreateProductModalProps {
-//   onSuccess?: () => void;
-// }
-
-// const CreateProductModal: React.FC<CreateProductModalProps> = ({
-//   onSuccess,
-// }) => {
-//   const [open, setOpen] = useState(false);
-//   const [formData, setFormData] = useState({
-//     HSCode: "",
-//     nameEn: "",
-//     nameAr: "",
-//     defaultDutyRate: 0,
-//     subChapterId: "",
-//     agreementId: "",
-//     serviceTax: false,
-//     adVAT: false,
-//   });
-
-//   const { execute: createProduct, isLoading } = useGenericMutation({
-//     mutation: CREATE_PRODUCT,
-//     onSuccess: () => {
-//       setOpen(false);
-//       setFormData({
-//         HSCode: "",
-//         nameEn: "",
-//         nameAr: "",
-//         defaultDutyRate: 0,
-//         subChapterId: "",
-//         agreementId: "",
-//         serviceTax: false,
-//         adVAT: false,
-//       });
-//       onSuccess?.();
-//     },
-//     onError: (error) => {
-//       console.log("Error creating product:", error);
-//       toast.error(`Error creating product: ${error.message}`, {
-//         duration: 5000,
-//         icon: "❌",
-//       });
-//     },
-//   });
-
-//   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-//     e.preventDefault();
-//     createProduct({
-//       createProductInput: {
-//         ...formData,
-//         defaultDutyRate: Number(formData.defaultDutyRate),
-//         serviceTax: Boolean(formData.serviceTax),
-//         adVAT: Boolean(formData.adVAT),
-//       },
-//     });
-//   };
-
-//   const handleInputChange = (
-//     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-//   ) => {
-//     const { name, value, type } = e.target as HTMLInputElement;
-//     const finalValue =
-//       type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
-
-//     setFormData((prev) => ({
-//       ...prev,
-//       [name]: finalValue,
-//     }));
-//   };
-
-//   return (
-//     <Dialog open={open} onOpenChange={setOpen}>
-//       <DialogTrigger asChild>
-//         <Button className="mb-4">
-//           <Plus className="w-4 h-4 mr-2" />
-//           Add New Product
-//         </Button>
-//       </DialogTrigger>
-//       <DialogContent className="sm:max-w-[500px]">
-//         <DialogHeader>
-//           <DialogTitle>Create New Product</DialogTitle>
-//         </DialogHeader>
-//         <form onSubmit={handleSubmit} className="space-y-4">
-//           <div className="space-y-2">
-//             <Label htmlFor="HSCode">HS Code</Label>
-//             <Input
-//               id="HSCode"
-//               name="HSCode"
-//               value={formData.HSCode}
-//               onChange={handleInputChange}
-//               placeholder="Enter HS Code"
-//               className="w-full"
-//               required
-//             />
-//           </div>
-
-//           <div className="space-y-2">
-//             <Label htmlFor="nameAr">Arabic Name</Label>
-//             <Input
-//               id="nameAr"
-//               name="nameAr"
-//               value={formData.nameAr}
-//               onChange={handleInputChange}
-//               placeholder="Enter Arabic name"
-//               className="w-full"
-//               required
-//             />
-//           </div>
-
-//           <div className="space-y-2">
-//             <Label htmlFor="nameEn">English Name</Label>
-//             <Input
-//               id="nameEn"
-//               name="nameEn"
-//               value={formData.nameEn}
-//               onChange={handleInputChange}
-//               placeholder="Enter English name"
-//               className="w-full"
-//               required
-//             />
-//           </div>
-
-//           <div className="space-y-2">
-//             <Label htmlFor="defaultDutyRate">Default Duty Rate (%)</Label>
-//             <Input
-//               id="defaultDutyRate"
-//               name="defaultDutyRate"
-//               type="number"
-//               value={formData.defaultDutyRate}
-//               onChange={handleInputChange}
-//               placeholder="Enter duty rate"
-//               className="w-full"
-//               required
-//             />
-//           </div>
-
-//           <div className="space-y-2">
-//             <Label htmlFor="subChapterId">Sub Chapter ID</Label>
-//             <Input
-//               id="subChapterId"
-//               name="subChapterId"
-//               value={formData.subChapterId}
-//               onChange={handleInputChange}
-//               placeholder="Enter sub chapter ID"
-//               className="w-full"
-//               required
-//             />
-//           </div>
-
-//           <div className="space-y-2">
-//             <Label htmlFor="agreementId">Agreement ID</Label>
-//             <Input
-//               id="agreementId"
-//               name="agreementId"
-//               value={formData.agreementId}
-//               onChange={handleInputChange}
-//               placeholder="Enter agreement ID"
-//               className="w-full"
-//               required
-//             />
-//           </div>
-
-//           <div className="flex items-center space-x-2">
-//             <input
-//               type="checkbox"
-//               id="serviceTax"
-//               name="serviceTax"
-//               checked={formData.serviceTax}
-//               onChange={handleInputChange}
-//               className="w-4 h-4"
-//             />
-//             <Label htmlFor="serviceTax">Service Tax</Label>
-//           </div>
-
-//           <div className="flex items-center space-x-2">
-//             <input
-//               type="checkbox"
-//               id="adVAT"
-//               name="adVAT"
-//               checked={formData.adVAT}
-//               onChange={handleInputChange}
-//               className="w-4 h-4"
-//             />
-//             <Label htmlFor="adVAT">VAT</Label>
-//           </div>
-
-//           <div className="flex justify-end gap-2">
-//             <Button
-//               type="button"
-//               variant="outline"
-//               onClick={() => setOpen(false)}
-//             >
-//               Cancel
-//             </Button>
-//             <Button type="submit" disabled={isLoading}>
-//               {isLoading ? "Creating..." : "Create"}
-//             </Button>
-//           </div>
-//         </form>
-//       </DialogContent>
-//     </Dialog>
-//   );
-// };
-
-// export default CreateProductModal;
