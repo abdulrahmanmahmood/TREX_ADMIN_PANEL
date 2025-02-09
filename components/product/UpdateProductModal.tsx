@@ -37,6 +37,13 @@ interface ProductData {
   adVAT: boolean;
 }
 
+interface UpdateProductModalProps {
+  productId: string;
+  productData: ProductData;
+  onSuccess?: () => void;
+  onClose: () => void;
+}
+
 const UPDATE_PRODUCT = gql`
   mutation UpdateProduct($updateProductInput: UpdateProductInput!) {
     updateProduct(updateProductInput: $updateProductInput)
@@ -69,13 +76,6 @@ const GET_CHAPTERS = gql`
   }
 `;
 
-interface UpdateProductModalProps {
-  productId: string;
-  productData: ProductData;
-  onSuccess?: () => void;
-  onClose: () => void;
-}
-
 const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
   productId,
   productData,
@@ -83,6 +83,7 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
   onClose,
 }) => {
   const [formData, setFormData] = useState(productData);
+  const [changedFields, setChangedFields] = useState<Partial<ProductData>>({});
   const [isChapterDropdownOpen, setIsChapterDropdownOpen] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState("Select a Chapter");
@@ -90,7 +91,6 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
   const { data: agreementsData } = useGenericQuery({ query: GET_AGREEMENTS });
   const { data: chaptersData } = useGenericQuery({ query: GET_CHAPTERS });
 
-  // Find and set the initial chapter/subchapter name
   useEffect(() => {
     if (chaptersData?.getChapters?.data && formData.subChapterId) {
       let found = false;
@@ -123,14 +123,33 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
     },
   });
 
+  const updateChangedFields = (name: keyof ProductData, value: any) => {
+    if (value !== productData[name]) {
+      setChangedFields((prev) => ({ ...prev, [name]: value }));
+    } else {
+      const { [name]: removed, ...rest } = changedFields;
+      setChangedFields(rest);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (Object.keys(changedFields).length === 0) {
+      toast("No changes detected");
+      return;
+    }
+
+    const updateData = {
+      id: productId,
+      ...changedFields,
+    };
+
+    if ("defaultDutyRate" in changedFields) {
+      updateData.defaultDutyRate = Number(changedFields.defaultDutyRate);
+    }
+
     updateProduct({
-      updateProductInput: {
-        ...formData,
-        id: productId,
-        defaultDutyRate: Number(formData.defaultDutyRate),
-      },
+      updateProductInput: updateData,
     });
   };
 
@@ -138,10 +157,14 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, type, checked, value } = e.target as HTMLInputElement;
+    const newValue = type === "checkbox" ? checked : value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: newValue,
     }));
+
+    updateChangedFields(name as keyof ProductData, newValue);
   };
 
   const handleChapterSelect = (chapter: Chapter) => {
@@ -149,6 +172,7 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
       ...prev,
       subChapterId: chapter._id,
     }));
+    updateChangedFields("subChapterId", chapter._id);
     setSelectedName(chapter.nameEn);
     setIsChapterDropdownOpen(false);
   };
@@ -158,6 +182,7 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
       ...prev,
       subChapterId: subChapter._id,
     }));
+    updateChangedFields("subChapterId", subChapter._id);
     setSelectedName(subChapter.nameEn);
     setIsChapterDropdownOpen(false);
   };
@@ -214,7 +239,6 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
             />
           </div>
 
-          {/* Custom Chapter Dropdown */}
           <div className="space-y-2">
             <Label>Chapter</Label>
             <div className="relative">
@@ -314,7 +338,11 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
             <Label htmlFor="adVAT">VAT</Label>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || Object.keys(changedFields).length === 0}
+          >
             {isLoading ? "Updating..." : "Update Product"}
           </Button>
         </form>
