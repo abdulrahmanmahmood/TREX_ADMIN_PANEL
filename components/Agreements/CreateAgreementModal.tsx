@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/UI/button";
 import {
   Dialog,
@@ -9,7 +9,7 @@ import {
 } from "@/components/UI/dialog";
 import { Input } from "@/components/UI/input";
 import { Label } from "@/components/UI/label";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
@@ -47,12 +47,37 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
     countryId: "",
     note: "",
   });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loadedCountries, setLoadedCountries] = useState<
+    Array<{ _id: string; nameEn: string }>
+  >([]);
+  const [hasMore, setHasMore] = useState(true);
 
-  // Fetch countries
   const { data: countriesData, loading: loadingCountries } = useGenericQuery({
     query: GET_COUNTRIES,
     variables: { page: currentPage },
   });
+
+  useEffect(() => {
+    if (countriesData?.countryList?.data) {
+      setLoadedCountries((prev) => {
+        const newCountries = countriesData.countryList.data.filter(
+          (newCountry: { _id: string }) =>
+            !prev.some((prevCountry) => prevCountry._id === newCountry._id)
+        );
+        return [...prev, ...newCountries];
+      });
+      setHasMore(countriesData.countryList.data.length > 0);
+    }
+  }, [countriesData]);
+
+  useEffect(() => {
+    if (!open) {
+      setCurrentPage(1);
+      setLoadedCountries([]);
+      setHasMore(true);
+    }
+  }, [open]);
 
   const { execute: createAgreement, isLoading } = useGenericMutation({
     mutation: CREATE_AGREEMENT,
@@ -84,9 +109,7 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -95,12 +118,13 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
     }));
   };
 
-  const handleNextPage = () => {
-    setCurrentPage((prev) => prev + 1);
-  };
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 10;
 
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1));
+    if (isNearBottom && hasMore && !loadingCountries) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   return (
@@ -141,50 +165,52 @@ const CreateAgreementModal: React.FC<CreateAgreementModalProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="countryId">Select Country</Label>
-            <div className="relative flex items-center gap-3">
-              <select
-                id="countryId"
-                name="countryId"
-                value={formData.countryId}
-                onChange={handleInputChange}
-                className="flex-1 h-10 w-full rounded-l-md border border-r-0 border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                required
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={loadingCountries}
               >
-                <option value="" disabled>
-                  {loadingCountries
-                    ? "Loading countries..."
-                    : "Select a country"}
-                </option>
-                {countriesData?.countryList?.data.map(
-                  (country: { _id: string; nameEn: string }) => (
-                    <option key={country._id} value={country._id}>
+                {formData.countryId
+                  ? loadedCountries.find((c) => c._id === formData.countryId)
+                      ?.nameEn
+                  : "Select a country"}
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </button>
+
+              {isDropdownOpen && (
+                <div
+                  className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto border border-input bg-background rounded-md shadow-lg"
+                  onScroll={handleScroll}
+                >
+                  {loadedCountries.map((country) => (
+                    <div
+                      key={country._id}
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          countryId: country._id,
+                        }));
+                        setIsDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                    >
                       {country.nameEn}
-                    </option>
-                  )
-                )}
-              </select>
-              <div className="flex flex-col border border-l-0 border-input rounded-r-md bg-background">
-                <button
-                  type="button"
-                  onClick={handlePreviousPage}
-                  disabled={currentPage === 1 || loadingCountries}
-                  className="flex items-center justify-center h-5 px-2 border-b border-input hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-tr-md"
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextPage}
-                  disabled={
-                    !countriesData?.countryList?.data?.length ||
-                    loadingCountries
-                  }
-                  className="flex items-center justify-center h-5 px-2 hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-br-md"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </div>
+                    </div>
+                  ))}
+                  {loadingCountries && (
+                    <div className="px-3 py-2 text-muted-foreground">
+                      Loading more countries...
+                    </div>
+                  )}
+                  {!hasMore && (
+                    <div className="px-3 py-2 text-muted-foreground">
+                      No more countries
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-2">
