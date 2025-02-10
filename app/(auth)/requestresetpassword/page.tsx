@@ -52,7 +52,7 @@ export default function RequestResetPage() {
   if (isEmailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="w-full max-w-md bg-white rounded-lg shadow-lg px-8 pt-8 text-center">
           <h2 className="text-2xl font-bold text-green-600 mb-4">
             Check Your Email
           </h2>
@@ -73,7 +73,7 @@ export default function RequestResetPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg px-8 pt-8">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Reset Password</h1>
           <p className="text-gray-500 mt-2">

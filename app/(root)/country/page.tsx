@@ -134,7 +134,7 @@ const Page = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-3 p-8">
+      <div className="flex justify-between items-center mb-3 px-8 pt-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Countries
         </h1>

@@ -117,7 +117,7 @@ export default function Page({
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-64 mb-4"></div>
           <div className="h-32 bg-gray-200 rounded mb-4"></div>

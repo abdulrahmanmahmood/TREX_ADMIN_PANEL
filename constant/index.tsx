@@ -1,4 +1,12 @@
-import { HomeIcon } from "lucide-react";
+import {
+  Flag,
+  Handshake,
+  HomeIcon,
+  ShoppingCart,
+  SquareArrowRightIcon,
+  TableOfContents,
+  Weight,
+} from "lucide-react";
 
 interface menuItem {
   name: string;
@@ -18,35 +26,35 @@ export const menuItems: menuItem[] = [
     name: "Partnter Registration",
     id: 2,
     url: "/partner-registration",
-    icon: <HomeIcon />,
+    icon: <SquareArrowRightIcon />,
   },
   {
     name: "Chapters",
-    icon: <HomeIcon />,
+    icon: <TableOfContents />,
     id: 3,
     url: "/chapters",
   },
   {
     name: "Products",
-    icon: <HomeIcon />,
+    icon: <ShoppingCart />,
     id: 5,
     url: "/products",
   },
   {
     name: "Measurments",
-    icon: <HomeIcon />,
+    icon: <Weight />,
     id: 6,
     url: "/measurments",
   },
   {
     name: "Agreements",
-    icon: <HomeIcon />,
+    icon: <Handshake />,
     id: 7,
     url: "/agreement",
   },
   {
     name: "Countries",
-    icon: <HomeIcon />,
+    icon: <Flag />,
     id: 8,
     url: "/country",
   },

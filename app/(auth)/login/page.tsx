@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg px-8 pt-8">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">
             <span className="text-blue-600">Trex</span> Dashboard
