@@ -15,8 +15,8 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="flex-none sticky top-0 w-64 bg-gradient-to-b from-slate-800 to-slate-900 pb-4 rounded-r-xl h-screen pt-11 shadow-xl">
-      <div className="flex flex-col justify-between ml-2 gap-[30vh]">
+    <div className="flex-none sticky top-0 w-64 bg-gradient-to-b from-slate-800 to-slate-900 pb-4 h-screen pt-4 shadow-xl">
+      <div className="flex flex-col justify-between ml-2 gap-[34vh]">
         <div className="flex flex-col gap-1">
           {menuItems.map((item) => {
             const isActive =

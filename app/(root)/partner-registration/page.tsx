@@ -222,7 +222,7 @@ const Page = () => {
   console.log("registrations", registrations);
 
   return (
-    <div className="w-[95%] mx-auto">
+    <div className="">
       <GenericTable
         data={registrations?.data || []}
         columns={columns}

@@ -42,8 +42,8 @@ const GenericTable = <T extends { id: string | number }>({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-[90vh] %] overflow-x-auto">
-      <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="pb-4 overflow-x-auto w-[100%]">
+      <div className=" p-6">
         {(title || subtitle) && (
           <div className="mb-6">
             {title && (
@@ -57,12 +57,12 @@ const GenericTable = <T extends { id: string | number }>({
           </div>
         )}
 
-        <div className="overflow-x-auto relative">
+        <div className="overflow-x-auto relative border border-gray-200 rounded-lg">
           {/* Add loading overlay */}
           {isLoading ? (
             <TableSkeleton columnCount={5} rowCount={10} hasActions={true} />
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 min-h-[6  0vh]">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   {columns.map((column) => (

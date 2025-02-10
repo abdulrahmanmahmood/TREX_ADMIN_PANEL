@@ -4,7 +4,7 @@ import { gql } from "@apollo/client";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/UI/card";
 import { Button } from "@/components/UI/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, BookOpen, Plus } from "lucide-react";
 import { Badge } from "@/components/UI/badge";
 import GenericTable from "@/components/UI/Table/GenericTable";
 import CreateSubChapterModal from "@/components/chapter/CreateSubChapterModal";
@@ -12,7 +12,7 @@ import UpdateChapterModal from "@/components/chapter/UpdateChapterModal";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 
-// Types remain the same...
+// Types remain unchanged...
 interface SubChapter {
   _id: string;
   nameEn: string;
@@ -75,6 +75,7 @@ const CHAPTER_QUERY = gql`
     }
   }
 `;
+
 const DELETE_CHAPTER = gql`
   mutation DeleteChapter($id: ID!) {
     deleteChapter(id: $id)
@@ -89,6 +90,7 @@ export default function ChapterPage({
   const { id } = use(params);
   const [selectedSubChapter, setSelectedSubChapter] =
     useState<SubChapter | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data, loading, error, refetch } = useGenericQuery<ChapterResponse>({
     query: CHAPTER_QUERY,
@@ -109,33 +111,45 @@ export default function ChapterPage({
   const handleDelete = (subChapter: TransformedSubChapter) => {
     deleteChapter({ id: subChapter._id });
   };
+
   const handleEdit = (subChapter: TransformedSubChapter) => {
     setSelectedSubChapter(subChapter);
   };
 
-  // Table configuration for subchapters
-  const columns: {
-    header: string;
-    key: keyof TransformedSubChapter;
-    render?: (value: unknown, item: TransformedSubChapter) => React.ReactNode;
-  }[] = [
+  const columns = [
     {
       header: "English Name",
-      key: "nameEn",
+      key: "nameEn" as keyof TransformedSubChapter,
+      render: (value: unknown) => (
+        <div className="font-medium text-gray-900">{String(value)}</div>
+      ),
     },
     {
       header: "Arabic Name",
-      key: "nameAr",
+      key: "nameAr" as keyof TransformedSubChapter,
+      render: (value: unknown) => (
+        <div className="font-arabic text-gray-900 text-right">
+          {String(value)}
+        </div>
+      ),
     },
     {
       header: "Created At",
-      key: "createdAt",
-      render: (value) => <span className="font-arabic">{`${value}`}</span>,
+      key: "createdAt" as keyof TransformedSubChapter,
+      render: (value: unknown) => (
+        <div className="text-sm text-gray-500">
+          {new Date(String(value)).toLocaleDateString()}
+        </div>
+      ),
     },
     {
       header: "Updated At",
-      key: "updatedAt",
-      render: (value) => <span className="font-arabic">{`${value}`}</span>,
+      key: "updatedAt" as keyof TransformedSubChapter,
+      render: (value: unknown) => (
+        <div className="text-sm text-gray-500">
+          {new Date(String(value)).toLocaleDateString()}
+        </div>
+      ),
     },
   ];
 
@@ -144,107 +158,151 @@ export default function ChapterPage({
       label: "Edit",
       onClick: handleEdit,
       icon: <Pencil className="h-4 w-4" />,
-      className: "text-blue-600 hover:text-blue-800",
+      className:
+        "text-blue-600 hover:text-blue-800 transition-colors duration-200",
     },
     {
       label: "Delete",
       onClick: handleDelete,
       icon: <Trash2 className="h-4 w-4" />,
-      className: "text-red-600 hover:text-red-800",
+      className:
+        "text-red-600 hover:text-red-800 transition-colors duration-200",
     },
   ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center bg-gray-50">
+        <div className="text-lg font-medium text-gray-600 animate-pulse">
+          Loading...
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-red-500">Error: {error}</div>
+      <div className="flex items-center justify-center bg-gray-50">
+        <div className="text-lg font-medium text-red-500">Error: {error}</div>
       </div>
     );
   }
 
   if (!data?.chapter) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">No chapter found</div>
+      <div className="flex items-center justify-center bg-gray-50">
+        <div className="text-lg font-medium text-gray-600">
+          No chapter found
+        </div>
       </div>
     );
   }
 
   const { chapter } = data;
-
-  // Transform subchapters data to include id for GenericTable
   const subChaptersData: TransformedSubChapter[] = chapter.subChapters.map(
     (subChapter) => ({
       ...subChapter,
-      id: subChapter._id, // GenericTable expects an id field
+      id: subChapter._id,
     })
   );
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* Chapter Details Card */}
-      <Card className="mb-8 shadow-lg">
-        <CardHeader className="bg-gray-50">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl font-bold">
-              Chapter Details
-            </CardTitle>
-            <Badge variant="secondary">ID: {chapter._id}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className=" gap-6">
-            {/* Parent Chapter Info */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Parent Chapter</h3>
-              <Badge className="mb-2">ID: {chapter._id}</Badge>
-              <p>
-                <span className="font-medium">English Name:</span>{" "}
-                {chapter.nameEn}
-              </p>
-              <p>
-                <span className="font-medium">Arabic Name:</span>{" "}
-                {chapter.nameAr}
-              </p>
+    <div className="bg-gray-50 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Chapter Details Card */}
+        <Card className="mb-8 bg-white shadow-lg border-none">
+          <CardHeader className="bg-white border-b border-gray-100">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <BookOpen className="h-6 w-6 text-blue-600" />
+                <CardTitle className="text-2xl font-bold text-gray-900">
+                  Chapter Details
+                </CardTitle>
+              </div>
+              <Badge
+                variant="secondary"
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-800"
+              >
+                ID: {chapter._id}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Parent Chapter
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">
+                    English Name
+                  </p>
+                  <p className="text-base text-gray-900">{chapter.nameEn}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">
+                    Arabic Name
+                  </p>
+                  <p className="text-base text-gray-900 font-arabic">
+                    {chapter.nameAr}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {selectedSubChapter && (
+          <UpdateChapterModal
+            chapterId={selectedSubChapter._id}
+            onSuccess={() => {
+              setSelectedSubChapter(null);
+              refetch();
+            }}
+            onClose={() => setSelectedSubChapter(null)}
+          />
+        )}
+
+        {isCreateModalOpen && (
+          <CreateSubChapterModal
+            chapterId={chapter._id}
+            onSuccess={() => {
+              setIsCreateModalOpen(false);
+              refetch();
+            }}
+          />
+        )}
+
+        {/* Subchapters Table */}
+        <div className="">
+          <div className="">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Sub Chapters
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Total: {subChaptersData.length} sub chapters
+                </p>
+              </div>
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Sub Chapter
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-      <CreateSubChapterModal
-        chapterId={chapter._id}
-        onSuccess={() => {
-          // Refetch the chapter data to update the table
-          refetch();
-        }}
-      />
-      {selectedSubChapter && (
-        <UpdateChapterModal
-          chapterId={selectedSubChapter._id}
-          onSuccess={() => {
-            setSelectedSubChapter(null);
-            refetch();
-          }}
-          onClose={() => setSelectedSubChapter(null)}
-        />
-      )}
-      {/* Subchapters Table */}
-      <GenericTable
-        data={subChaptersData}
-        columns={columns}
-        actions={actions}
-        title="Sub Chapters"
-        subtitle={`Showing ${subChaptersData.length} sub chapters`}
-        isLoading={loading}
-        error={error}
-      />
+          <GenericTable
+            data={subChaptersData}
+            columns={columns}
+            actions={actions}
+            isLoading={loading}
+            error={error}
+          />
+        </div>
+      </div>
     </div>
   );
 }
