@@ -8,10 +8,12 @@ import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import CreateIncotermModal from "@/components/incoterms/CreateIncotermsModal";
+import UpdateIncotermModal from "@/components/incoterms/UpdateIncoTermsModal";
 
 const GET_INCOTERMS = gql`
   query AllIncoterms($page: Int!) {
-    allIncoterms(filter: { deleted: true }, pageable: { page: $page }) {
+    allIncoterms(filter: { deleted: false }, pageable: { page: $page }) {
       totalSize
       totalPages
       pageSize
@@ -45,8 +47,10 @@ const GET_INCOTERMS = gql`
 `;
 
 const DELETE_INCOTERM = gql`
-  mutation DeleteIncoterm($id: ID!) {
-    deleteIncoterm(id: $id)
+  mutation SoftDeleteIncoterm($id: ID!) {
+    softDeleteIncoterm(id: $id) {
+      _id
+    }
   }
 `;
 
@@ -85,7 +89,9 @@ type Incoterm = IncotermFromAPI & {
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const [selectedIncoterm, setSelectedIncoterm] = useState<string | null>(null);
+  const [selectedIncoterm, setSelectedIncoterm] = useState<Incoterm | null>(
+    null
+  );
   const [openUpdateModal, setOpenUpdateModal] = useState(false);
   const router = useRouter();
 
@@ -121,7 +127,7 @@ const Page = () => {
   };
 
   const handleEdit = (incoterm: Incoterm) => {
-    setSelectedIncoterm(incoterm.id);
+    setSelectedIncoterm(incoterm);
     setOpenUpdateModal(true);
   };
 
@@ -231,7 +237,17 @@ const Page = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Incoterms
         </h1>
+
+        <CreateIncotermModal onSuccess={refetch} />
       </div>
+
+      <UpdateIncotermModal
+        open={openUpdateModal}
+        onOpenChange={setOpenUpdateModal}
+        incotermData={selectedIncoterm ?? undefined}
+        onSuccess={refetch}
+      />
+
       <GenericTable
         data={transformedData}
         columns={columns}

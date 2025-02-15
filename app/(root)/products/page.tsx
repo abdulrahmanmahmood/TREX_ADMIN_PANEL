@@ -25,15 +25,9 @@ const GET_PRODUCTS = gql`
         defaultDutyRate
         serviceTax
         adVAT
-        measurementUnit {
-          _id
-          unitNameEn
-          unitNameAr
-          note
-        }
-        subChapterId {
-          _id
-        }
+        deletedAt
+        createdAt
+        updatedAt
       }
     }
   }

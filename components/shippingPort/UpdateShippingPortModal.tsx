@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/UI/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/UI/dialog";
 import { Input } from "@/components/UI/input";
 import { Label } from "@/components/UI/label";
@@ -16,17 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/UI/select";
-import {  Plus } from "lucide-react";
 import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import toast from "react-hot-toast";
+import { ShippingPortFromAPI } from "@/types/shipping";
 
-const CREATE_SHIPPING_PORT = gql`
-  mutation CreateShippingPort(
-    $createShippingPortInput: CreateShippingPortDTO!
+const UPDATE_SHIPPING_PORT = gql`
+  mutation UpdateShippingPortResponse(
+    $updateShippingPortResponseInput: UpdateShippingPortInput!
   ) {
-    createShippingPort(createShippingPortInput: $createShippingPortInput)
+    updateShippingPortResponse(
+      updateShippingPortResponseInput: $updateShippingPortResponseInput
+    ) {
+      _id
+      nameAr
+      nameEn
+    }
   }
 `;
 
@@ -41,8 +46,10 @@ const GET_COUNTRIES = gql`
   }
 `;
 
-interface CreateShippingPortModalProps {
+interface UpdateShippingPortModalProps {
   refetch: () => void;
+  shippingPort: ShippingPortFromAPI;
+  onClose: () => void;
 }
 
 const portTypes = [
@@ -51,16 +58,18 @@ const portTypes = [
   { value: "landPort", label: "Land Port" },
 ];
 
-const CreateShippingPortModal: React.FC<CreateShippingPortModalProps> = ({
+const UpdateShippingPortModal: React.FC<UpdateShippingPortModalProps> = ({
   refetch,
+  shippingPort,
+  onClose,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const [formData, setFormData] = useState({
-    nameEn: "",
-    nameAr: "",
-    port: "",
-    countryId: "",
+    nameEn: shippingPort.nameEn || "",
+    nameAr: shippingPort.nameAr || "",
+    port: shippingPort.port || "",
+    countryId: shippingPort.countryId?._id || "",
+    id: shippingPort._id,
   });
 
   const { data: countriesData, loading: loadingCountries } = useGenericQuery({
@@ -68,29 +77,23 @@ const CreateShippingPortModal: React.FC<CreateShippingPortModalProps> = ({
     variables: { page: currentPage },
   });
 
-  const { execute: createShippingPort, isLoading } = useGenericMutation({
-    mutation: CREATE_SHIPPING_PORT,
+  const { execute: updateShippingPort, isLoading } = useGenericMutation({
+    mutation: UPDATE_SHIPPING_PORT,
     onSuccess: () => {
-      setOpen(false);
-      setFormData({
-        nameEn: "",
-        nameAr: "",
-        port: "",
-        countryId: "",
-      });
-      toast.success("Shipping port created successfully! ✅");
-      refetch(); // Using the refetch prop instead of onSuccess
+      onClose();
+      toast.success("Shipping port updated successfully! ✅");
+      refetch();
     },
     onError: (error) => {
-      console.log("Error creating shipping port:", error);
+      console.log("Error updating shipping port:", error);
       toast.error(error.message, { position: "top-right", duration: 3000 });
     },
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createShippingPort({
-      createShippingPortInput: formData,
+    updateShippingPort({
+      updateShippingPortResponseInput: formData,
     });
   };
 
@@ -104,52 +107,53 @@ const CreateShippingPortModal: React.FC<CreateShippingPortModalProps> = ({
     }));
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="mb-4">
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Shipping Port
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={true} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Shipping Port</DialogTitle>
+          <DialogTitle>Update Shipping Port</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="nameEn">English Name</Label>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="nameEn" className="text-right">
+              Name (En)
+            </Label>
             <Input
               id="nameEn"
               name="nameEn"
               value={formData.nameEn}
               onChange={handleInputChange}
-              placeholder="Enter English name"
-              required
+              className="col-span-3"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="nameAr">Arabic Name</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="nameAr" className="text-right">
+              Name (Ar)
+            </Label>
             <Input
               id="nameAr"
               name="nameAr"
               value={formData.nameAr}
               onChange={handleInputChange}
-              placeholder="Enter Arabic name"
-              required
-              className="font-arabic"
-              dir="rtl"
+              className="col-span-3"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="port">Port Type</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="port" className="text-right">
+              Port Type
+            </Label>
             <Select
               value={formData.port}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, port: value }))
-              }
+              onValueChange={(value) => handleSelectChange("port", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select port type" />
               </SelectTrigger>
               <SelectContent>
@@ -161,15 +165,15 @@ const CreateShippingPortModal: React.FC<CreateShippingPortModalProps> = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="countryId">Country</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="countryId" className="text-right">
+              Country
+            </Label>
             <Select
               value={formData.countryId}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, countryId: value }))
-              }
+              onValueChange={(value) => handleSelectChange("countryId", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select country" />
               </SelectTrigger>
               <SelectContent>
@@ -181,13 +185,18 @@ const CreateShippingPortModal: React.FC<CreateShippingPortModalProps> = ({
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Shipping Port"}
-          </Button>
+          <div className="flex justify-end gap-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Updating..." : "Update"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default CreateShippingPortModal;
+export default UpdateShippingPortModal;

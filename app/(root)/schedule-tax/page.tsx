@@ -8,6 +8,8 @@ import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import CreateScheduleTaxModal from "@/components/scheduleTax/CreateScheduleTaxModal";
+import UpdateScheduleTaxModal from "@/components/scheduleTax/UpdateScheduleTaxModal";
 
 const GET_SCHEDULE_TAXES = gql`
   query FindAllScheduleTaxies($page: Int!) {
@@ -40,8 +42,8 @@ const GET_SCHEDULE_TAXES = gql`
 `;
 
 const DELETE_SCHEDULE_TAX = gql`
-  mutation DeleteScheduleTax($id: ID!) {
-    deleteScheduleTax(id: $id)
+  mutation HardDeleteScheduleTax($id: ID!) {
+    hardDeleteScheduleTax(id: $id)
   }
 `;
 
@@ -64,20 +66,21 @@ type ScheduleTaxFromAPI = {
   };
 };
 
-// Extended type to include the required 'id' field and flattened properties for the table
 type ScheduleTax = ScheduleTaxFromAPI & {
   id: string;
   unitNameAr: string;
   unitNameEn: string;
   createdByName: string;
+  min: number;
+  max: number;
+  fee: number;
 };
 
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const [selectedTax, setSelectedTax] = useState<string | null>(null);
-  const [openUpdateModal, setOpenUpdateModal] = useState(false);
   const router = useRouter();
+  const [editingTaxes, setEditingTaxes] = useState<Record<string, boolean>>({});
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_SCHEDULE_TAXES,
@@ -111,11 +114,19 @@ const Page = () => {
   };
 
   const handleEdit = (tax: ScheduleTax) => {
-    setSelectedTax(tax.id);
-    setOpenUpdateModal(true);
+    setEditingTaxes((prev) => ({
+      ...prev,
+      [tax._id]: true,
+    }));
   };
 
-  // Transform the API data to include flattened properties
+  const handleCloseEdit = (taxId: string) => {
+    setEditingTaxes((prev) => ({
+      ...prev,
+      [taxId]: false,
+    }));
+  };
+
   const transformedData: ScheduleTax[] = (
     data?.findAllScheduleTaxies?.data || []
   ).map((item: ScheduleTaxFromAPI) => ({
@@ -128,32 +139,31 @@ const Page = () => {
       : "N/A",
   }));
 
-  const columns: {
-    header: string;
-    key: keyof ScheduleTax;
-    render?: (value: unknown, item: ScheduleTax) => React.ReactNode;
-  }[] = [
+  const columns = [
     {
       header: "Note",
-      key: "note",
+      key: "note" as keyof ScheduleTax,
     },
     {
       header: "Unit Name (Arabic)",
-      key: "unitNameAr",
-      render: (value) => <span className="font-arabic">{value as string}</span>,
+      key: "unitNameAr" as keyof ScheduleTax,
+      render: (value: unknown) => (
+        <span className="font-arabic">{value as string}</span>
+      ),
     },
     {
       header: "Unit Name (English)",
-      key: "unitNameEn",
+      key: "unitNameEn" as keyof ScheduleTax,
     },
     {
       header: "Created By",
-      key: "createdByName",
+      key: "createdByName" as keyof ScheduleTax,
     },
     {
       header: "Created At",
-      key: "createdAt",
-      render: (value) => new Date(value as string).toLocaleDateString(),
+      key: "createdAt" as keyof ScheduleTax,
+      render: (value: unknown) =>
+        new Date(value as string).toLocaleDateString(),
     },
   ];
 
@@ -182,6 +192,7 @@ const Page = () => {
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+    setEditingTaxes({});
   };
 
   return (
@@ -190,7 +201,28 @@ const Page = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Schedule Taxes
         </h1>
+        <CreateScheduleTaxModal refetch={refetch} />
       </div>
+
+      {transformedData.map(
+        (tax) =>
+          editingTaxes[tax._id] && (
+            <UpdateScheduleTaxModal
+              key={tax._id}
+              scheduleTax={{
+                _id: tax._id,
+                note: tax.note,
+                measurementId: tax.measurementId,
+                fee: tax.fee || 0,
+                max: tax.max || 0,
+                min: tax.min || 0,
+              }}
+              refetch={refetch}
+              onClose={() => handleCloseEdit(tax._id)}
+            />
+          )
+      )}
+
       <GenericTable
         data={transformedData}
         columns={columns}
@@ -201,6 +233,7 @@ const Page = () => {
         isLoading={loading}
         error={error || null}
       />
+
       {!loading && !error && data?.findAllScheduleTaxies?.totalPages && (
         <Pagination
           currentPage={currentPage}
