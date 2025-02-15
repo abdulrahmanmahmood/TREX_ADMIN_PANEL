@@ -8,6 +8,9 @@ import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import CreateShippingPortModal from "@/components/shippingPort/CreateShippingPortModal";
+import UpdateShippingPortModal from "@/components/shippingPort/UpdateShippingPortModal";
+import { ShippingPort, ShippingPortFromAPI } from "@/types/shipping";
 
 const GET_SHIPPING_PORTS = gql`
   query GetShippingPorts($page: Int!) {
@@ -36,39 +39,18 @@ const GET_SHIPPING_PORTS = gql`
 `;
 
 const DELETE_SHIPPING_PORT = gql`
-  mutation DeleteShippingPort($id: ID!) {
-    deleteShippingPort(id: $id)
+  mutation SoftDeleteShippingPort($id: ID!) {
+    softDeleteShippingPort(id: $id)
   }
 `;
-
-type ShippingPortFromAPI = {
-  _id: string;
-  nameAr: string;
-  nameEn: string;
-  port: string;
-  createdBy: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  countryId: {
-    _id: string;
-    nameEn: string;
-    nameAr: string;
-    code: string;
-  };
-};
-
-// Extended type to include the required 'id' field for GenericTable
-type ShippingPort = ShippingPortFromAPI & { id: string };
 
 const Page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const [selectedPort, setSelectedPort] = useState<string | null>(null);
-  const [openUpdateModal, setOpenUpdateModal] = useState(false);
   const router = useRouter();
+
+  // Keep track of which ports are being edited
+  const [editingPorts, setEditingPorts] = useState<Record<string, boolean>>({});
 
   const { data, loading, error, refetch } = useGenericQuery({
     query: GET_SHIPPING_PORTS,
@@ -102,11 +84,19 @@ const Page = () => {
   };
 
   const handleEdit = (port: ShippingPort) => {
-    setSelectedPort(port.id);
-    setOpenUpdateModal(true);
+    setEditingPorts((prev) => ({
+      ...prev,
+      [port._id]: true,
+    }));
   };
 
-  // Transform the API data to include the required 'id' field
+  const handleCloseEdit = (portId: string) => {
+    setEditingPorts((prev) => ({
+      ...prev,
+      [portId]: false,
+    }));
+  };
+
   const transformedData: ShippingPort[] = (
     data?.getShippingPortList?.data || []
   ).map((item: ShippingPortFromAPI) => ({
@@ -114,33 +104,33 @@ const Page = () => {
     id: item._id,
   }));
 
-  const columns: {
-    header: string;
-    key: keyof ShippingPort;
-    render?: (value: unknown, item: ShippingPort) => React.ReactNode;
-  }[] = [
+  const columns = [
     {
       header: "Arabic Name",
-      key: "nameAr",
-      render: (value) => <span className="font-arabic">{`${value}`}</span>,
+      key: "nameAr" as keyof ShippingPort,
+      render: (value: unknown) => (
+        <span className="font-arabic">{`${value}`}</span>
+      ),
     },
     {
       header: "English Name",
-      key: "nameEn",
+      key: "nameEn" as keyof ShippingPort,
     },
     {
       header: "Port",
-      key: "port",
+      key: "port" as keyof ShippingPort,
     },
     {
       header: "Country",
-      key: "countryId",
-      render: (value, item) => <span>{item.countryId?.nameEn || "N/A"}</span>,
+      key: "countryId" as keyof ShippingPort,
+      render: (_: unknown, item: ShippingPort) => (
+        <span>{item.countryId?.nameEn || "N/A"}</span>
+      ),
     },
     {
       header: "Created By",
-      key: "createdBy",
-      render: (value, item) => (
+      key: "createdBy" as keyof ShippingPort,
+      render: (_: unknown, item: ShippingPort) => (
         <span>{`${item.createdBy?.firstName} ${item.createdBy?.lastName}`}</span>
       ),
     },
@@ -171,6 +161,8 @@ const Page = () => {
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+    // Clear editing state when changing pages
+    setEditingPorts({});
   };
 
   return (
@@ -179,7 +171,21 @@ const Page = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Shipping Ports
         </h1>
+        <CreateShippingPortModal refetch={refetch} />
       </div>
+
+      {transformedData.map(
+        (port) =>
+          editingPorts[port._id] && (
+            <UpdateShippingPortModal
+              key={port._id}
+              shippingPort={port}
+              refetch={refetch}
+              onClose={() => handleCloseEdit(port._id)}
+            />
+          )
+      )}
+
       <GenericTable
         data={transformedData}
         columns={columns}
@@ -190,6 +196,7 @@ const Page = () => {
         isLoading={loading}
         error={error || null}
       />
+
       {!loading && !error && data?.getShippingPortList?.totalPages && (
         <Pagination
           currentPage={currentPage}
