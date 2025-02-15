@@ -33,7 +33,7 @@ interface FormData {
   nameAr: string;
   defaultDutyRate: number;
   subChapterId: string;
-  agreementId: string;
+  agreements: string;
   serviceTax: boolean;
   adVAT: boolean;
 }
@@ -88,7 +88,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
     nameAr: "",
     defaultDutyRate: 0,
     subChapterId: "",
-    agreementId: "",
+    agreements: "",
     serviceTax: false,
     adVAT: false,
   });
@@ -106,7 +106,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
         nameAr: "",
         defaultDutyRate: 0,
         subChapterId: "",
-        agreementId: "",
+        agreements: "",
         serviceTax: false,
         adVAT: false,
       });
@@ -273,11 +273,11 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
           {/* Agreements Dropdown */}
           <div className="space-y-2">
-            <Label htmlFor="agreementId">Agreement</Label>
+            <Label htmlFor="agreements">Agreement</Label>
             <select
-              id="agreementId"
-              name="agreementId"
-              value={formData.agreementId}
+              id="agreements"
+              name="agreements"
+              value={formData.agreements}
               onChange={handleInputChange}
               className="w-full border rounded-md p-2"
               required

@@ -8,6 +8,7 @@ import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import CreateShippingPortModal from "@/components/shippingPort/CreateShippingPortModal";
 
 const GET_SHIPPING_PORTS = gql`
   query GetShippingPorts($page: Int!) {
@@ -179,6 +180,8 @@ const Page = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           Shipping Ports
         </h1>
+
+        <CreateShippingPortModal refetch={refetch} />
       </div>
       <GenericTable
         data={transformedData}

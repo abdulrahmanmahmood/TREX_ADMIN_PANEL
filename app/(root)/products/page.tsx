@@ -11,7 +11,7 @@ import UpdateProductModal from "@/components/product/UpdateProductModal";
 
 const GET_PRODUCTS = gql`
   query GetProducts($page: Int!) {
-    allProducts(pageable: { page: $page }) {
+    allProducts(deleted: { deleted: false }, pageable: { page: $page }) {
       totalSize
       totalPages
       pageSize
@@ -27,7 +27,8 @@ const GET_PRODUCTS = gql`
         adVAT
         measurementUnit {
           _id
-          unitName
+          unitNameEn
+          unitNameAr
           note
         }
         subChapterId {
@@ -70,7 +71,8 @@ type ProductFromAPI = {
   };
   measurementUnit: {
     _id: string;
-    unitName: string;
+    unitNameEn: string;
+    unitNameAr: string;
     note: string;
   };
 };
@@ -183,7 +185,7 @@ const Page = () => {
     {
       header: "Measurement Unit",
       key: "measurementUnit",
-      render: (_, item) => item.measurementUnit?.unitName || "N/A",
+      render: (_, item) => item.measurementUnit?.unitNameEn || "N/A",
     },
     {
       header: "Note",
