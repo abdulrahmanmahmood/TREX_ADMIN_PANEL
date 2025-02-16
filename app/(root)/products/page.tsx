@@ -7,7 +7,9 @@ import GenericTable from "@/components/UI/Table/GenericTable";
 import Pagination from "@/components/UI/pagination/Pagination";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import CreateProductModal from "@/components/product/CreateProductModal";
-import UpdateProductModal from "@/components/product/UpdateProductModal";
+import UpdateProductModal, {
+  AgreementFormData,
+} from "@/components/product/UpdateProductModal";
 
 const GET_PRODUCTS = gql`
   query GetProducts($page: Int!) {
@@ -59,7 +61,7 @@ type ProductFromAPI = {
   note: string;
   defaultDutyRate: number;
   serviceTax: boolean;
-  adVAT: boolean;
+  adVAT: number;
   subChapterId: {
     _id: string;
   };
@@ -87,8 +89,10 @@ const Page = () => {
     defaultDutyRate: number;
     agreementId: string;
     serviceTax: boolean;
-    adVAT: boolean;
+    adVAT: number;
     subChapterId: string;
+    agreements: AgreementFormData[];
+    type: "regural" | "car";
   }>({
     HSCode: "",
     nameEn: "",
@@ -96,8 +100,10 @@ const Page = () => {
     defaultDutyRate: 0,
     agreementId: "",
     serviceTax: false,
-    adVAT: false,
+    adVAT: 0,
     subChapterId: "",
+    agreements: [], // Add default value for agreements as AgreementFormData[]
+    type: "regural", // Add default value for type
   });
   const [open, setOpen] = useState(false);
 
@@ -139,8 +145,10 @@ const Page = () => {
       defaultDutyRate: product.defaultDutyRate,
       agreementId: "", // You might need to adjust this based on your data structure
       serviceTax: product.serviceTax,
-      adVAT: product.adVAT,
+      adVAT: product.adVAT ? 1 : 0, // Assuming adVAT is a boolean and should be converted to number
       subChapterId: product.subChapterId._id,
+      agreements: [], // Add default value for agreements
+      type: "regural", // Add default value for type
     });
     setOpen(true);
   };

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { gql } from "@apollo/client";
+import Select, { StylesConfig } from "react-select";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import toast from "react-hot-toast/headless";
@@ -26,16 +27,30 @@ interface SubChapter {
   _id: string;
   nameEn: string;
 }
+interface Agreement {
+  _id: string;
+  name: string;
+}
+interface AgreementFormData {
+  agreementId: string;
+  reducedDutyRate: number;
+  applyGlobal: boolean;
+}
+interface SelectOption {
+  value: string;
+  label: string;
+}
 
 interface FormData {
-  HSCode: string;
+  HSCode?: string;
   nameEn: string;
   nameAr: string;
   defaultDutyRate: number;
   subChapterId: string;
-  agreements: string;
+  agreements: AgreementFormData[];
   serviceTax: boolean;
-  adVAT: boolean;
+  adVAT: number;
+  type: "regural" | "car";
 }
 
 // GraphQL Queries
@@ -71,6 +86,33 @@ const CREATE_PRODUCT = gql`
   }
 `;
 
+export const selectStyles: StylesConfig<SelectOption, true> = {
+  control: (base) => ({
+    ...base,
+    backgroundColor: "white",
+    borderColor: "#e2e8f0",
+    "&:hover": {
+      borderColor: "#cbd5e1",
+    },
+  }),
+  menu: (base) => ({
+    ...base,
+    backgroundColor: "white",
+    zIndex: 50,
+  }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isSelected
+      ? "#0f172a"
+      : state.isFocused
+      ? "#f1f5f9"
+      : "white",
+    "&:active": {
+      backgroundColor: "#e2e8f0",
+    },
+  }),
+};
+
 interface CreateProductModalProps {
   onSuccess?: () => void;
 }
@@ -88,9 +130,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
     nameAr: "",
     defaultDutyRate: 0,
     subChapterId: "",
-    agreements: "",
+    agreements: [],
     serviceTax: false,
-    adVAT: false,
+    adVAT: 0,
+    type: "regural",
   });
 
   const { data: chaptersData } = useGenericQuery({ query: GET_CHAPTERS });
@@ -106,9 +149,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
         nameAr: "",
         defaultDutyRate: 0,
         subChapterId: "",
-        agreements: "",
+        agreements: [],
         serviceTax: false,
-        adVAT: false,
+        adVAT: 0,
+        type: "regural",
       });
       setSelectedName("Select a Chapter");
       toast.success("Product created successfully! ✅");
@@ -118,24 +162,76 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
       toast.error(`Error creating product: ${error.message}`);
     },
   });
+  const handleAgreementChange = (selected: readonly SelectOption[]) => {
+    const newAgreements = selected.map((option) => ({
+      agreementId: option.value,
+      reducedDutyRate: 0,
+      applyGlobal: true,
+    }));
+    setFormData((prev) => ({
+      ...prev,
+      agreements: newAgreements,
+    }));
+  };
+
+  const handleAgreementDutyRateChange = (agreementId: string, rate: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      agreements: prev.agreements.map((agreement) =>
+        agreement.agreementId === agreementId
+          ? { ...agreement, reducedDutyRate: rate }
+          : agreement
+      ),
+    }));
+  };
+
+  const handleAgreementGlobalChange = (
+    agreementId: string,
+    applyGlobal: boolean
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      agreements: prev.agreements.map((agreement) =>
+        agreement.agreementId === agreementId
+          ? { ...agreement, applyGlobal }
+          : agreement
+      ),
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const submitData = {
+      ...formData,
+      defaultDutyRate: Number(formData.defaultDutyRate),
+      adVAT: Number(formData.adVAT),
+      agreements: formData.agreements
+        .map((agreement) => JSON.stringify(agreement))
+        .join(","),
+    };
+
+    if (!submitData.HSCode) {
+      delete submitData.HSCode;
+    }
+
     createProduct({
-      createProductInput: {
-        ...formData,
-        defaultDutyRate: Number(formData.defaultDutyRate),
-      },
+      createProductInput: submitData,
     });
   };
 
+  // Transform agreements data for react-select
+  const agreementOptions: SelectOption[] =
+    agreementsData?.AgreementList?.data.map((agreement: Agreement) => ({
+      value: agreement._id,
+      label: agreement.name,
+    })) || [];
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, type, checked, value } = e.target as HTMLInputElement;
+    const { name, type, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? value === "on" : value,
     }));
   };
 
@@ -157,6 +253,8 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setIsChapterDropdownOpen(false);
   };
 
+  // Transform agreements data for react-select
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -165,21 +263,34 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
           Add New Product
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] py-5">
         <DialogHeader>
           <DialogTitle>Create New Product</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic form fields */}
           <div className="space-y-2">
-            <Label htmlFor="HSCode">HS Code</Label>
+            <Label htmlFor="HSCode">HS Code (Optional)</Label>
             <Input
               id="HSCode"
               name="HSCode"
               value={formData.HSCode}
               onChange={handleInputChange}
-              required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Type</Label>
+            <select
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleInputChange}
+              className="w-full border rounded-md p-2"
+              required
+            >
+              <option value="regural">Regular</option>
+              <option value="car">Car</option>
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -216,7 +327,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             />
           </div>
 
-          {/* Custom Chapter Dropdown */}
+          {/* Chapter Dropdown */}
           <div className="space-y-2">
             <Label>Chapter</Label>
             <div className="relative">
@@ -271,26 +382,80 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             </div>
           </div>
 
-          {/* Agreements Dropdown */}
+          {/* Agreements Multi-Select */}
           <div className="space-y-2">
-            <Label htmlFor="agreements">Agreement</Label>
-            <select
-              id="agreements"
-              name="agreements"
-              value={formData.agreements}
-              onChange={handleInputChange}
-              className="w-full border rounded-md p-2"
-              required
-            >
-              <option value="">Select an Agreement</option>
-              {agreementsData?.AgreementList?.data.map(
-                (agreement: { _id: string; name: string }) => (
-                  <option key={agreement._id} value={agreement._id}>
-                    {agreement.name}
-                  </option>
+            <Label>Agreements</Label>
+            <Select<SelectOption, true>
+              isMulti
+              options={agreementOptions}
+              styles={selectStyles}
+              className="w-full"
+              onChange={handleAgreementChange}
+              value={agreementOptions.filter((option) =>
+                formData.agreements.some(
+                  (agreement) => agreement.agreementId === option.value
                 )
               )}
-            </select>
+            />
+
+            {/* Agreement Duty Rates */}
+            {formData.agreements.length > 0 && (
+              <div className="mt-4 space-y-4">
+                {formData.agreements.map((agreement) => {
+                  const agreementName = agreementOptions.find(
+                    (opt) => opt.value === agreement.agreementId
+                  )?.label;
+
+                  return (
+                    <div
+                      key={agreement.agreementId}
+                      className="space-y-2 p-4 border rounded-md"
+                    >
+                      <div className="font-medium">{agreementName}</div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`dutyRate-${agreement.agreementId}`}>
+                          Reduced Duty Rate (%)
+                        </Label>
+                        <Input
+                          id={`dutyRate-${agreement.agreementId}`}
+                          type="number"
+                          value={agreement.reducedDutyRate}
+                          onChange={(e) =>
+                            handleAgreementDutyRateChange(
+                              agreement.agreementId,
+                              Number(e.target.value)
+                            )
+                          }
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`global-${agreement.agreementId}`}
+                          checked={agreement.applyGlobal}
+                          onChange={(e) =>
+                            handleAgreementGlobalChange(
+                              agreement.agreementId,
+                              e.target.checked
+                            )
+                          }
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor={`global-${agreement.agreementId}`}>
+                          Apply Globally
+                        </Label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -305,16 +470,19 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <Label htmlFor="serviceTax">Service Tax</Label>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
+          <div className="space-y-2">
+            <Label htmlFor="adVAT">VAT Rate (%)</Label>
+            <Input
               id="adVAT"
               name="adVAT"
-              checked={formData.adVAT}
+              type="number"
+              value={formData.adVAT}
               onChange={handleInputChange}
-              className="w-4 h-4"
+              min="0"
+              max="100"
+              step="0.01"
+              required
             />
-            <Label htmlFor="adVAT">VAT</Label>
           </div>
 
           <div className="flex justify-end gap-2">

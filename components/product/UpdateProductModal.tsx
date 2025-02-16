@@ -13,6 +13,8 @@ import { gql } from "@apollo/client";
 import { useGenericMutation } from "@/hooks/generic/useGenericMutation";
 import { useGenericQuery } from "@/hooks/generic/useGenericQuery";
 import toast from "react-hot-toast";
+import Select, { StylesConfig } from "react-select";
+import { selectStyles } from "./CreateProductModal";
 
 // Types
 interface Chapter {
@@ -25,16 +27,32 @@ interface SubChapter {
   _id: string;
   nameEn: string;
 }
+export interface AgreementFormData {
+  agreementId: string;
+  reducedDutyRate: number;
+  applyGlobal: boolean;
+}
+
+interface Agreement {
+  _id: string;
+  name: string;
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
 
 interface ProductData {
-  HSCode: string;
+  HSCode?: string;
   nameEn: string;
   nameAr: string;
   defaultDutyRate: number;
-  agreementId: string;
   subChapterId: string;
+  agreements: AgreementFormData[]; // Changed from agreementId
   serviceTax: boolean;
-  adVAT: boolean;
+  adVAT: number; // Changed from boolean
+  type: "regural" | "car"; // Added type field
 }
 
 interface UpdateProductModalProps {
@@ -147,6 +165,12 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
     if ("defaultDutyRate" in changedFields) {
       updateData.defaultDutyRate = Number(changedFields.defaultDutyRate);
     }
+    if ("adVAT" in changedFields) {
+      updateData.adVAT = Number(changedFields.adVAT);
+    }
+    if ("agreements" in changedFields) {
+      updateData.agreements = changedFields.agreements;
+    }
 
     updateProduct({
       updateProductInput: updateData,
@@ -186,6 +210,65 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
     setSelectedName(subChapter.nameEn);
     setIsChapterDropdownOpen(false);
   };
+
+  const handleAgreementChange = (selected: readonly SelectOption[]) => {
+    const newAgreements = selected.map((option) => {
+      const existingAgreement = formData.agreements.find(
+        (a) => a.agreementId === option.value
+      );
+      return (
+        existingAgreement || {
+          agreementId: option.value,
+          reducedDutyRate: 0,
+          applyGlobal: true,
+        }
+      );
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      agreements: newAgreements,
+    }));
+    updateChangedFields("agreements", newAgreements);
+  };
+
+  const handleAgreementDutyRateChange = (agreementId: string, rate: number) => {
+    const newAgreements = formData.agreements.map((agreement) =>
+      agreement.agreementId === agreementId
+        ? { ...agreement, reducedDutyRate: rate }
+        : agreement
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      agreements: newAgreements,
+    }));
+    updateChangedFields("agreements", newAgreements);
+  };
+
+  const handleAgreementGlobalChange = (
+    agreementId: string,
+    applyGlobal: boolean
+  ) => {
+    const newAgreements = formData.agreements.map((agreement) =>
+      agreement.agreementId === agreementId
+        ? { ...agreement, applyGlobal }
+        : agreement
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      agreements: newAgreements,
+    }));
+    updateChangedFields("agreements", newAgreements);
+  };
+
+  // Transform agreements data for react-select
+  const agreementOptions: SelectOption[] =
+    agreementsData?.AgreementList?.data.map((agreement: Agreement) => ({
+      value: agreement._id,
+      label: agreement.name,
+    })) || [];
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -294,24 +377,77 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="agreementId">Agreement</Label>
-            <select
-              id="agreementId"
-              name="agreementId"
-              value={formData.agreementId}
-              onChange={handleInputChange}
-              className="w-full border rounded-md p-2"
-              required
-            >
-              <option value="">Select an Agreement</option>
-              {agreementsData?.AgreementList?.data.map(
-                (agreement: { _id: string; name: string }) => (
-                  <option key={agreement._id} value={agreement._id}>
-                    {agreement.name}
-                  </option>
+            <Label>Agreements</Label>
+            <Select<SelectOption, true>
+              isMulti
+              options={agreementOptions}
+              styles={selectStyles}
+              className="w-full"
+              onChange={handleAgreementChange}
+              value={agreementOptions.filter((option) =>
+                formData.agreements.some(
+                  (agreement) => agreement.agreementId === option.value
                 )
               )}
-            </select>
+            />
+
+            {formData.agreements.length > 0 && (
+              <div className="mt-4 space-y-4">
+                {formData.agreements.map((agreement) => {
+                  const agreementName = agreementOptions.find(
+                    (opt) => opt.value === agreement.agreementId
+                  )?.label;
+
+                  return (
+                    <div
+                      key={agreement.agreementId}
+                      className="space-y-2 p-4 border rounded-md"
+                    >
+                      <div className="font-medium">{agreementName}</div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`dutyRate-${agreement.agreementId}`}>
+                          Reduced Duty Rate (%)
+                        </Label>
+                        <Input
+                          id={`dutyRate-${agreement.agreementId}`}
+                          type="number"
+                          value={agreement.reducedDutyRate}
+                          onChange={(e) =>
+                            handleAgreementDutyRateChange(
+                              agreement.agreementId,
+                              Number(e.target.value)
+                            )
+                          }
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`global-${agreement.agreementId}`}
+                          checked={agreement.applyGlobal}
+                          onChange={(e) =>
+                            handleAgreementGlobalChange(
+                              agreement.agreementId,
+                              e.target.checked
+                            )
+                          }
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor={`global-${agreement.agreementId}`}>
+                          Apply Globally
+                        </Label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -326,16 +462,19 @@ const UpdateProductModal: React.FC<UpdateProductModalProps> = ({
             <Label htmlFor="serviceTax">Service Tax</Label>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="adVAT"
-              name="adVAT"
-              checked={formData.adVAT}
+          <div className="space-y-2">
+            <Label htmlFor="type">Type</Label>
+            <select
+              id="type"
+              name="type"
+              value={formData.type}
               onChange={handleInputChange}
-              className="w-4 h-4"
-            />
-            <Label htmlFor="adVAT">VAT</Label>
+              className="w-full border rounded-md p-2"
+              required
+            >
+              <option value="regural">Regular</option>
+              <option value="car">Car</option>
+            </select>
           </div>
 
           <Button
