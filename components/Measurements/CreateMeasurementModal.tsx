@@ -88,7 +88,7 @@ const GET_SUBCHAPTERS = gql`
 
 const GET_PRODUCTS = gql`
   query AllProducts {
-    allProducts {
+    allProducts(deleted: { deleted: false }) {
       data {
         _id
         HSCode
